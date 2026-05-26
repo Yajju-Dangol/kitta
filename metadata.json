@@ -1,0 +1,6 @@
+{
+  "name": "Kitta",
+  "description": "Nepal Stock Exchange (NEPSE) Agentic Stock Appraiser Terminal featuring high-density analytics, real-time tracers, and custom Gemini queries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
