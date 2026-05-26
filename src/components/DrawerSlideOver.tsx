@@ -59,10 +59,10 @@ export default function DrawerSlideOver({ isOpen, onClose, symbol, onCommitParam
             <div>
               <div className="flex items-center justify-between border-b border-[#202024] pb-3 mb-5">
                 <div className="flex flex-col">
-                  <span className="font-mono text-[9px] tracking-wider text-zinc-500 uppercase">TELEMETRY MODULE 08</span>
+                  <span className="font-sans text-[9px] tracking-wider text-zinc-500 uppercase">Alert Manager</span>
                   <span className="font-sans text-sm font-bold text-zinc-100 flex items-center space-x-1.5 uppercase mt-0.5">
                     <ShieldAlert className="w-4 h-4 text-[#10B981]" />
-                    <span>Config: {symbol} Signals</span>
+                    <span>Setup {symbol} Alert Trigger</span>
                   </span>
                 </div>
                 <button
@@ -162,10 +162,10 @@ export default function DrawerSlideOver({ isOpen, onClose, symbol, onCommitParam
             <div className="space-y-2 pt-4 border-t border-[#202024]">
               <button
                 onClick={handleCommit}
-                className="w-full py-3 bg-[#10B981] hover:bg-[#10B981]/95 text-black font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-lg shadow-[#10B981]/15"
+                className="w-full py-3 bg-[#10B981] hover:bg-[#10B981]/95 text-black font-sans text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-lg shadow-[#10B981]/15"
               >
                 <CheckCircle className="w-4 h-4 text-black" strokeWidth={2.5} />
-                <span>CONFIRM TELEMETRY (COMMIT SEED)</span>
+                <span>Confirm Trigger Alert</span>
               </button>
               <button
                 onClick={onClose}

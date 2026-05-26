@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, ListFilter, Settings, ShieldCheck, User } from "lucide-react";
+import { LayoutDashboard, BarChart3, ListFilter, Layers, ShieldCheck, User } from "lucide-react";
 
 interface SidebarProps {
   currentView: 'dashboard' | 'drilldown' | 'watchlist' | 'sandbox';
@@ -8,10 +8,10 @@ interface SidebarProps {
 
 export default function NavigationSidebar({ currentView, onViewChange, dbLatency = 12 }: SidebarProps) {
   const menuItems = [
-    { id: 'dashboard', label: 'Appraisal Dashboard', icon: LayoutDashboard },
-    { id: 'drilldown', label: 'Asset Deep-Dive', icon: BarChart3 },
-    { id: 'watchlist', label: 'Watchlist Tracker', icon: ListFilter },
-    { id: 'sandbox', label: 'Developer Sandbox', icon: Settings },
+    { id: 'dashboard', label: 'AI Appraisal', icon: LayoutDashboard },
+    { id: 'drilldown', label: 'Stock Details', icon: BarChart3 },
+    { id: 'watchlist', label: 'Watchlist', icon: ListFilter },
+    { id: 'sandbox', label: 'Sector Trends', icon: Layers },
   ] as const;
 
   return (

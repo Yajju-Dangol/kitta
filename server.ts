@@ -427,7 +427,7 @@ async function boot() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`KITTA Node dev server compiled and listening on http://0.0.0.0:${PORT}`);
+    console.log(`KITTA Node dev server compiled and listening on http://localhost:${PORT}`);
   });
 }
 

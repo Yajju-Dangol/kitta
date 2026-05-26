@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Stock, AlertRule } from "../types";
-import { Eye, Settings, PlayCircle, HelpCircle, Activity, ArrowRight, Trash2 } from "lucide-react";
+import { MessageSquare, Sliders, PlayCircle, HelpCircle, Activity, ArrowRight, Trash2, Bell } from "lucide-react";
 
 interface SpreadsheetGridProps {
   stocks: Stock[];
@@ -21,117 +21,139 @@ export default function SpreadsheetGrid({
   onDeleteAlert,
   currentSymbol
 }: SpreadsheetGridProps) {
-  const [hoveredRowSymbol, setHoveredRowSymbol] = useState<string | null>(null);
+
+  const getSectorAvg = (symbol: string) => {
+    if (symbol === "AHPC") return 22.0; // Hydropower
+    if (symbol === "HDL") return 31.4; // Manufacturing
+    return 18.5; // Commercial Banks
+  };
+
+  const getPeTag = (pe: number, sectorAvg: number) => {
+    return pe > sectorAvg ? "High" : "Value";
+  };
+
+  const getSentimentText = (sentiment: number) => {
+    if (sentiment >= 60) return "BULLISH";
+    if (sentiment <= 40) return "BEARISH";
+    return "NEUTRAL";
+  };
+
+  const getSentimentBadgeClass = (sentiment: number) => {
+    if (sentiment >= 60) return "bg-emerald-950/40 text-[#10B981] border-[#10B981]/30";
+    if (sentiment <= 40) return "bg-red-950/40 text-red-400 border-red-800/30";
+    return "bg-zinc-900 text-zinc-400 border-zinc-800";
+  };
+
+  const getAlertReadableText = (alert: AlertRule) => {
+    const op = alert.operator === "<" ? "drops below" : "rises above";
+    if (alert.metric === "PE") {
+      return `Alert me when P/E ${op} ${alert.value}`;
+    }
+    if (alert.metric === "Price") {
+      return `Alert me when price ${op} NPR ${alert.value.toLocaleString()}`;
+    }
+    if (alert.metric === "DivYield") {
+      return `Alert me when dividend yield is above ${alert.value}%`;
+    }
+    return `Alert me when ${alert.metric} ${alert.operator} ${alert.value}`;
+  };
 
   return (
-    <div id="spreadsheet-grid-panel" className="bg-[#09090B] border border-[#202024] p-4 flex flex-col space-y-4">
-      {/* Top action layout info */}
-      <div className="flex items-center justify-between border-b border-[#202024] pb-2.5">
-        <div className="flex items-center space-x-2 font-mono">
+    <div id="spreadsheet-grid-panel" className="bg-[#09090B] border border-zinc-800/80 p-5 rounded-xl flex flex-col space-y-4 shadow-sm font-sans">
+      
+      {/* Top action header */}
+      <div className="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+        <div className="flex items-center space-x-2">
           <Activity className="w-4 h-4 text-[#10B981]" />
-          <span className="text-[11px] font-bold text-zinc-300 uppercase">ACTIVE GENERAL MONITORING WATCHLIST MATRIX</span>
+          <span className="text-xs font-bold text-zinc-300 uppercase">My Watchlist</span>
         </div>
-        <span className="text-[9px] font-mono text-zinc-500 uppercase">[TABULAR METRIC ALIGNMENTS]</span>
+        <span className="text-[9px] font-mono text-zinc-500 uppercase">Interactive Fundamental Radar</span>
       </div>
 
-      {/* Spreadsheet grid */}
+      {/* Overhauled table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse select-none">
           <thead>
-            <tr className="border-b border-[#202024] font-mono text-[10px] text-zinc-500 uppercase tracking-wider bg-black/40">
-              <th className="py-2.5 px-3">Asset ID</th>
-              <th className="py-2.5 px-3">Company Identity</th>
-              <th className="py-2.5 px-3 text-right">Live Metric (Value)</th>
-              <th className="py-2.5 px-3 text-right">Inter-Day Delta (%)</th>
-              <th className="py-2.5 px-3 text-right">Tracking Ratio (P/E)</th>
-              <th className="py-2.5 px-3 text-center">Active Trigger Alerts</th>
-              <th className="py-2.5 px-3 text-right relative min-w-[200px]">Telemetry Actions</th>
+            <tr className="border-b border-zinc-800/80 font-sans text-[10px] text-zinc-500 uppercase tracking-wider bg-black/40">
+              <th className="py-3 px-4">Asset</th>
+              <th className="py-3 px-4">Company Identity</th>
+              <th className="py-3 px-4 text-right">Live Price (NPR)</th>
+              <th className="py-3 px-4 text-right">P/E vs Sector</th>
+              <th className="py-3 px-4 text-center">AI Sentiment</th>
+              <th className="py-3 px-4 text-right min-w-[210px]">Quick Action</th>
             </tr>
           </thead>
           <tbody>
             {stocks.map((stock) => {
-              const isHovered = hoveredRowSymbol === stock.symbol;
               const isUp = stock.price >= stock.open;
               const deltaPercent = ((stock.price - stock.open) / (stock.open || 1)) * 100;
+              const sectorAvg = getSectorAvg(stock.symbol);
+              const peTag = getPeTag(stock.pe, sectorAvg);
               
-              // Get active alerts targeting this symbol
+              // Alert tags
               const stockAlerts = alerts.filter(a => a.symbol === stock.symbol);
               const activeAlert = stockAlerts.find(a => a.active);
 
               return (
                 <tr
                   key={stock.symbol}
-                  onMouseEnter={() => setHoveredRowSymbol(stock.symbol)}
-                  onMouseLeave={() => setHoveredRowSymbol(null)}
-                  className={`border-b border-[#202024]/65 font-mono text-[11.5px] cursor-default transition-all ${
-                    isHovered ? 'bg-[#141417]/80' : 'hover:bg-[#141417]/40'
-                  }`}
+                  className="border-b border-zinc-800/40 text-xs hover:bg-[#141417]/50 transition-colors"
                 >
-                  {/* Asset ID */}
-                  <td className="py-3 px-3 font-semibold text-zinc-100 flex items-center space-x-1.5">
-                    <span className="text-[#10B981] font-bold">▪</span>
-                    <span>{stock.symbol}</span>
+                  {/* Asset */}
+                  <td className="py-3.5 px-4 font-mono font-bold text-zinc-100">
+                    <span className="text-[#10B981] mr-2">▪</span>
+                    {stock.symbol}
                   </td>
 
-                  {/* Identity */}
-                  <td className="py-3 px-3 text-zinc-400 font-sans">{stock.name}</td>
+                  {/* Company Identity */}
+                  <td className="py-3.5 px-4 text-zinc-400 font-sans">{stock.name}</td>
 
-                  {/* Price */}
-                  <td className="py-3 px-3 text-right text-zinc-200 font-bold tab-nums">
-                    NPR {stock.price.toLocaleString()}
+                  {/* Live Price (NPR) */}
+                  <td className="py-3.5 px-4 text-right font-mono font-semibold tab-nums text-zinc-200">
+                    <div className="flex flex-col items-end">
+                      <span>NPR {stock.price.toLocaleString()}</span>
+                      <span className={`text-[10px] font-bold mt-0.5 ${isUp ? 'text-[#10B981]' : 'text-red-400'}`}>
+                        {isUp ? '▲' : '▼'} {deltaPercent.toFixed(2)}%
+                      </span>
+                    </div>
                   </td>
 
-                  {/* Inter-day delta */}
-                  <td className="py-3 px-3 text-right tab-nums font-bold">
-                    <span className={isUp ? 'text-[#10B981]' : 'text-[#EF4444]'}>
-                      {isUp ? '+' : ''}{deltaPercent.toFixed(2)}%
+                  {/* P/E vs Sector */}
+                  <td className="py-3.5 px-4 text-right font-mono text-zinc-300">
+                    <div className="flex flex-col items-end">
+                      <span className="font-semibold text-zinc-100">{stock.pe.toFixed(1)}</span>
+                      <span className={`text-[10px] uppercase font-bold mt-0.5 ${peTag === 'Value' ? 'text-[#10B981]' : 'text-zinc-500'}`}>
+                        {peTag} (Avg {sectorAvg})
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* AI Sentiment */}
+                  <td className="py-3.5 px-4 text-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[10px] font-bold tracking-wider ${getSentimentBadgeClass(stock.sentiment)}`}>
+                      {getSentimentText(stock.sentiment)}
                     </span>
                   </td>
 
-                  {/* PE ratio */}
-                  <td className="py-3 px-3 text-right text-zinc-300 tab-nums">
-                    {stock.pe.toFixed(1)}
-                  </td>
+                  {/* Quick Action */}
+                  <td className="py-3.5 px-4 text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={() => onTriggerInterrogation(stock.symbol)}
+                        className="bg-[#10B981] hover:bg-[#10B981]/90 text-black text-[10px] font-bold px-3 py-1.5 rounded-md flex items-center space-x-1 uppercase transition-colors cursor-pointer"
+                      >
+                        <MessageSquare className="w-3 h-3 text-black" />
+                        <span>Ask AI</span>
+                      </button>
 
-                  {/* Pulse condition alerts tag */}
-                  <td className="py-3 px-3 text-center">
-                    {activeAlert ? (
-                      <span className="inline-flex items-center space-x-1.5 bg-[#10B981]/15 text-[#10B981] px-2 py-0.5 border border-[#10B981]/25 text-[10px] rounded-sm font-bold uppercase animate-pulse">
-                        <span className="h-1.5 w-1.5 bg-[#10B981] rounded-full"></span>
-                        <span>{activeAlert.metric} {activeAlert.operator} {activeAlert.value}</span>
-                      </span>
-                    ) : stockAlerts.length > 0 ? (
-                      <span className="bg-[#141417] text-zinc-500 border border-[#202024] px-2 py-0.5 text-[9px] rounded-sm font-bold uppercase">
-                        INACTIVE
-                      </span>
-                    ) : (
-                      <span className="text-zinc-600 italic">None Enabled</span>
-                    )}
-                  </td>
-
-                  {/* Telemetry Actions with absolute alignment hovering quick-links */}
-                  <td className="py-3 px-3 text-right relative pr-4">
-                    {isHovered ? (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2 bg-[#141417] border border-[#202024] p-0.5">
-                        <button
-                          onClick={() => onTriggerInterrogation(stock.symbol)}
-                          className="bg-[#10B981] text-black hover:bg-[#10B981]/80 text-[10px] font-black px-2 py-1 flex items-center space-x-1 uppercase transition-colors"
-                        >
-                          <span>Execute Interrogation</span>
-                          <ArrowRight className="w-3 h-3 text-black" />
-                        </button>
-                        <button
-                          onClick={() => onEditTelemetryRules(stock.symbol)}
-                          className="bg-black text-zinc-300 hover:text-white hover:border-[#10B981] text-[10px] border border-[#202024] px-2.5 py-1 flex items-center space-x-1 uppercase transition-all"
-                        >
-                          <span>Trigger Telemetry Rules</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-end space-x-2 text-zinc-500">
-                        <span className="text-[10px] tracking-tight uppercase">[ Hover to Interrogate ]</span>
-                      </div>
-                    )}
+                      <button
+                        onClick={() => onEditTelemetryRules(stock.symbol)}
+                        className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-[10px] px-2.5 py-1.5 rounded-md flex items-center space-x-1 uppercase transition-all cursor-pointer"
+                      >
+                        <Sliders className="w-3 h-3" />
+                        <span>Set Alerts</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -140,44 +162,50 @@ export default function SpreadsheetGrid({
         </table>
       </div>
 
-      {/* Spreadsheet alert parameters details list */}
+      {/* Alert Manager Section */}
       {alerts.length > 0 && (
-        <div className="pt-4 border-t border-[#202024] space-y-3">
-          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-            ACTIVE ALERTS TELEMETRY METRICS CONFIGURATION REGISTER:
+        <div className="pt-4 border-t border-zinc-800/60 space-y-3.5">
+          <div className="flex items-center space-x-1.5 text-zinc-500 font-semibold tracking-wider text-[10px] uppercase">
+            <Bell className="w-3.5 h-3.5 text-zinc-500" />
+            <span>Alert Manager</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {alerts.map((alert) => (
               <div 
                 key={alert.id} 
-                className={`p-3 bg-black/40 border flex flex-col justify-between space-y-2 ${
-                  alert.active ? 'border-[#10B981] bg-[#10B981]/5' : 'border-[#202024]'
+                className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-3 transition-all ${
+                  alert.active 
+                    ? 'border-[#10B981]/50 bg-[#10B981]/5 shadow-[0_0_8px_rgba(16,185,129,0.03)]' 
+                    : 'border-zinc-800 bg-zinc-900/30'
                 }`}
               >
-                <div className="flex items-center justify-between font-mono text-[10px]">
-                  <span className="font-bold text-zinc-200">{alert.symbol} Trigger rule</span>
-                  <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-sm border ${
-                    alert.active ? 'text-[#10B981] border-[#10B981]/30 bg-[#10B981]/10' : 'text-zinc-500 border-zinc-800'
+                <div className="flex items-center justify-between font-sans text-[10.5px]">
+                  <span className="font-bold text-zinc-200">{alert.symbol} Price & Fundamental Triggers</span>
+                  <span className={`px-2 py-0.5 text-[8.5px] font-bold uppercase rounded-full border ${
+                    alert.active ? 'text-[#10B981] border-[#10B981]/30 bg-[#10B981]/10' : 'text-zinc-500 border-zinc-800 bg-zinc-950'
                   }`}>
-                    {alert.tag}
+                    {alert.active ? 'Active' : 'Muted'}
                   </span>
                 </div>
-                <div className="font-mono text-xs text-zinc-300">
-                  Trigger alarm if: <b className="text-zinc-100">{alert.metric} {alert.operator} {alert.value}</b>
+
+                <div className="font-sans text-xs text-zinc-300 font-medium">
+                  {getAlertReadableText(alert)}
                 </div>
-                <div className="flex items-center justify-between pt-1.5 border-t border-[#202024]/60">
+
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-800/40">
                   <button 
                     onClick={() => onToggleAlert(alert.id)}
-                    className="text-[9px] font-mono hover:text-[#10B981] hover:underline uppercase text-zinc-400"
+                    className="text-[9px] font-semibold hover:text-[#10B981] uppercase text-zinc-400 transition-colors"
                   >
-                    {alert.active ? 'Disable alarm' : 'Enable alarm'}
+                    {alert.active ? 'Mute Alert' : 'Activate'}
                   </button>
                   <button 
                     onClick={() => onDeleteAlert(alert.id)}
-                    className="text-[9px] font-mono text-[#EF4444]/80 hover:text-[#EF4444] uppercase inline-flex items-center space-x-1"
+                    className="text-[9px] font-semibold text-red-400/80 hover:text-red-400 uppercase inline-flex items-center space-x-1 transition-colors"
                   >
                     <Trash2 className="w-3 h-3" />
-                    <span>Purge rule</span>
+                    <span>Purge</span>
                   </button>
                 </div>
               </div>

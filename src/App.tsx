@@ -10,7 +10,7 @@ import TelemetryStrip from "./components/TelemetryStrip";
 import MainTerminalPage from "./pages/MainTerminalPage";
 import AssetDeepDivePage from "./pages/AssetDeepDivePage";
 import WatchlistForgePage from "./pages/WatchlistForgePage";
-import SandboxPage from "./pages/SandboxPage";
+import MacroInsightsHubPage from "./pages/MacroInsightsHubPage";
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'drilldown' | 'watchlist' | 'sandbox'>('dashboard');
@@ -181,7 +181,7 @@ export default function App() {
         );
       case 'sandbox':
         return (
-          <SandboxPage />
+          <MacroInsightsHubPage />
         );
       default:
         return (

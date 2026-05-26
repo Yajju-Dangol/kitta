@@ -1,13 +1,21 @@
-import React, { useState, useRef, useEffect } from "react";
-import { TrendingUp, Award, Calendar, Activity } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Activity, Info } from "lucide-react";
 
 interface TimeseriesChartProps {
   symbol: string;
   price: number;
   sparkline: number[];
+  selectedEventId?: string | null;
+  onSelectEventId?: (eventId: string | null) => void;
 }
 
-export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220, 1195, 1230, 1225, 1215, 1235, 1245] }: TimeseriesChartProps) {
+export default function TimeseriesChart({ 
+  symbol, 
+  price, 
+  sparkline = [1200, 1220, 1195, 1230, 1225, 1215, 1230, 1235, 1240, 1245],
+  selectedEventId,
+  onSelectEventId
+}: TimeseriesChartProps) {
   const [range, setRange] = useState<'1D' | '1W' | '1M' | '1Y'>('1D');
   const [hoveredData, setHoveredData] = useState<{ value: number; percent: number; index: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -34,6 +42,28 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
   const maxVal = Math.max(...chartPoints) * 1.005;
   const rangeDelta = maxVal - minVal;
 
+  const getEventsForSymbol = (sym: string) => {
+    if (sym === "NABIL") {
+      return [
+        { id: "news_2", index: 6, label: "DIV", title: "Dividend Declared (May 22)" },
+        { id: "news_1", index: 8, label: "Q3", title: "Q3 Net Profit +14% (May 24)" }
+      ];
+    }
+    if (sym === "NMB") {
+      return [
+        { id: "news_3", index: 7, label: "FMO", title: "FMO USD 25M Credit (May 23)" }
+      ];
+    }
+    if (sym === "AHPC") {
+      return [
+        { id: "news_4", index: 9, label: "TEST", title: "Piluwa Grid Test (May 25)" }
+      ];
+    }
+    return [];
+  };
+
+  const events = getEventsForSymbol(symbol);
+
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!containerRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -59,27 +89,27 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
   };
 
   // Convert price points into SVG coordinates
-  const height = 180;
+  const height = 140; // slightly adjusted to account for labels at the top
   const generateSvgPath = (w: number) => {
     const total = chartPoints.length;
     const widthSegment = w / (total - 1);
     
     return chartPoints.map((pt, index) => {
       const x = index * widthSegment;
-      const y = height - ((pt - minVal) / (rangeDelta || 1)) * height;
+      const y = height - ((pt - minVal) / (rangeDelta || 1)) * height + 25; // shifted down for header badges
       return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
     }).join(' ');
   };
 
   return (
-    <div ref={containerRef} className="bg-[#0c0c0e] rounded-xl border border-zinc-800/80 p-5 flex flex-col space-y-4 relative w-full h-full min-h-[250px] justify-between shadow-sm">
+    <div ref={containerRef} className="bg-[#0c0c0e] rounded-xl border border-zinc-800/80 p-5 flex flex-col space-y-4 relative w-full h-full min-h-[280px] justify-between shadow-sm font-sans">
       {/* Chart controls */}
       <div className="flex items-center justify-between border-b border-zinc-800/50 pb-3">
         <div className="flex items-center space-x-2">
           <Activity className="w-4 h-4 text-[#10B981]" />
-          <span className="text-xs text-zinc-300 font-medium tracking-tight uppercase">Historical Price Feed / {symbol}</span>
+          <span className="text-xs text-zinc-300 font-bold tracking-tight uppercase">Price History Timeline / {symbol}</span>
         </div>
-        <div className="flex bg-zinc-900 border border-zinc-800/80 p-0.5 rounded-lg space-x-1 font-sans text-[10px]">
+        <div className="flex bg-zinc-900 border border-zinc-805 p-0.5 rounded-lg space-x-1 font-sans text-[10px]">
           {(['1D', '1W', '1M', '1Y'] as const).map((r) => (
             <button
               key={r}
@@ -95,9 +125,9 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
       {/* Coordinate HUD overlay */}
       <div className="flex items-baseline justify-between h-10">
         <div className="flex flex-col">
-          <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Value Tracker</span>
+          <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Value Tracker</span>
           <span className="text-[#10B981] text-base font-bold font-mono tab-nums mt-0.5">
-            {hoveredData ? `NPR ${hoveredData.value.toFixed(2)} (${hoveredData.percent >= 0 ? '+' : ''}${hoveredData.percent.toFixed(2)}%)` : `LTP: NPR ${price}`}
+            {hoveredData ? `NPR ${hoveredData.value.toFixed(2)} (${hoveredData.percent >= 0 ? '+' : ''}${hoveredData.percent.toFixed(2)}%)` : `LTP: NPR ${price.toLocaleString()}`}
           </span>
         </div>
         <div className="text-right font-sans text-[10px] text-zinc-500">
@@ -105,7 +135,7 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
         </div>
       </div>
 
-      {/* Raw SVG Canvas */}
+      {/* SVG Canvas */}
       <div className="h-44 relative flex-1 mt-2 flex items-center justify-center">
         <svg 
           className="w-full h-full overflow-visible select-none"
@@ -113,9 +143,9 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
           onMouseLeave={handleMouseLeave}
         >
           {/* Subtle horizontal grid lines */}
-          <line x1="0" y1="20" x2="100%" y2="20" stroke="#1d1d22" strokeWidth="1" strokeDasharray="3 3" />
-          <line x1="0" y1="80" x2="100%" y2="80" stroke="#1d1d22" strokeWidth="1" strokeDasharray="3 3" />
-          <line x1="0" y1="140" x2="100%" y2="140" stroke="#1d1d22" strokeWidth="1" strokeDasharray="3 3" />
+          <line x1="0" y1="35" x2="100%" y2="35" stroke="#1d1d22" strokeWidth="1" strokeDasharray="3 3" />
+          <line x1="0" y1="85" x2="100%" y2="85" stroke="#1d1d22" strokeWidth="1" strokeDasharray="3 3" />
+          <line x1="0" y1="135" x2="100%" y2="135" stroke="#1d1d22" strokeWidth="1" strokeDasharray="3 3" />
 
           {/* Core Sparkline Area */}
           <path
@@ -125,6 +155,71 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
             strokeWidth="1.8"
             className="transition-all duration-300"
           />
+
+          {/* AI Event Flags */}
+          {events.map((evt) => {
+            const total = chartPoints.length;
+            const widthSegment = 600 / (total - 1);
+            const x = evt.index * widthSegment;
+            const ptVal = chartPoints[evt.index] || price;
+            const y = height - ((ptVal - minVal) / (rangeDelta || 1)) * height + 25;
+            const isSelected = selectedEventId === evt.id;
+
+            return (
+              <g key={evt.id} className="cursor-pointer group" onClick={() => onSelectEventId && onSelectEventId(evt.id)}>
+                {/* Dotted vertical marker */}
+                <line 
+                  x1={`${(evt.index / (total - 1)) * 100}%`}
+                  y1={y}
+                  x2={`${(evt.index / (total - 1)) * 100}%`}
+                  y2="100%"
+                  stroke={isSelected ? "#10B981" : "#27272a"}
+                  strokeWidth={isSelected ? 1.5 : 1}
+                  strokeDasharray="2 2"
+                  className="transition-colors duration-300"
+                />
+                
+                {/* Pulsing circular node */}
+                <circle
+                  cx={`${(evt.index / (total - 1)) * 100}%`}
+                  cy={y}
+                  r={isSelected ? 6 : 4}
+                  fill={isSelected ? "#10B981" : "#0c0c0e"}
+                  stroke="#10B981"
+                  strokeWidth={isSelected ? 2 : 1.5}
+                  className="transition-all duration-300 group-hover:scale-125"
+                />
+                {isSelected && (
+                  <circle
+                    cx={`${(evt.index / (total - 1)) * 100}%`}
+                    cy={y}
+                    r="10"
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth="1"
+                    className="animate-ping opacity-60"
+                  />
+                )}
+
+                {/* Small floating label above dot */}
+                <foreignObject
+                  x={`calc(${(evt.index / (total - 1)) * 100}% - 16px)`}
+                  y={y - 22}
+                  width="32"
+                  height="16"
+                  className="overflow-visible"
+                >
+                  <div className={`px-1 rounded border text-[8.5px] font-bold text-center uppercase shadow-sm select-none transition-all ${
+                    isSelected 
+                      ? 'bg-[#10B981] text-black border-[#10B981]' 
+                      : 'bg-black/90 text-zinc-400 border-zinc-800 group-hover:text-zinc-200 group-hover:border-zinc-700'
+                  }`}>
+                    {evt.label}
+                  </div>
+                </foreignObject>
+              </g>
+            );
+          })}
 
           {/* Hover Crosshair Marker line */}
           {hoveredData && (
@@ -142,7 +237,7 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
               {/* Highlight Circle Node */}
               <circle
                 cx={`${(hoveredData.index / (chartPoints.length - 1)) * 100}%`}
-                cy={`${height - ((hoveredData.value - minVal) / (rangeDelta || 1)) * height}`}
+                cy={`${height - ((hoveredData.value - minVal) / (rangeDelta || 1)) * height + 25}`}
                 r="4.5"
                 fill="#10B981"
                 stroke="#000000"
@@ -153,7 +248,7 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
         </svg>
 
         {/* Floating current value bounds indicators */}
-        <div className="absolute right-0 top-1 font-mono text-[8px] text-zinc-500 bg-zinc-950/90 px-1.5 py-0.5 rounded border border-zinc-800/80 tab-nums">
+        <div className="absolute right-0 top-6 font-mono text-[8px] text-zinc-500 bg-zinc-950/90 px-1.5 py-0.5 rounded border border-zinc-800/80 tab-nums">
           MAX {maxVal.toFixed(1)}
         </div>
         <div className="absolute right-0 bottom-1 font-mono text-[8px] text-zinc-500 bg-zinc-950/90 px-1.5 py-0.5 rounded border border-zinc-800/80 tab-nums">
@@ -161,10 +256,13 @@ export default function TimeseriesChart({ symbol, price, sparkline = [1200, 1220
         </div>
       </div>
 
-      {/* Footer details info */}
+      {/* Event selection info footer */}
       <div className="flex items-center justify-between text-[10px] text-zinc-500 font-sans pt-3 border-t border-zinc-800/50">
-        <span>Session Data: NEPSE Market Feed</span>
-        <span>Updates: Real-time Live Stream</span>
+        <span className="flex items-center space-x-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]"></span>
+          <span>Click on <b className="text-zinc-400">[AI]</b> flags to appraise timeline events</span>
+        </span>
+        <span>Source: NEPSE Feed Real-time</span>
       </div>
     </div>
   );

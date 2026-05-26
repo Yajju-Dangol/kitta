@@ -3,7 +3,7 @@ import { Stock, NewsItem } from "../types";
 import TimeseriesChart from "../components/TimeseriesChart";
 import NewsTimeline from "../components/NewsTimeline";
 import SidecarAssistant from "../components/SidecarAssistant";
-import { ArrowLeft, RefreshCw, BarChart2, Zap, AlertCircle } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 
 interface AssetDeepDivePageProps {
   stocks: Stock[];
@@ -19,11 +19,15 @@ export default function AssetDeepDivePage({
   const [activeStock, setActiveStock] = useState<Stock | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [sidecarPrompt, setSidecarPrompt] = useState<string | undefined>(undefined);
 
   // Load target stocks and contextual scraped news logs from API
   useEffect(() => {
     const stockObj = stocks.find((s) => s.symbol === selectedSymbol) || stocks[0];
     setActiveStock(stockObj || null);
+    setSelectedEventId(null);
+    setSidecarPrompt(undefined);
 
     fetch("/api/news")
       .then((res) => {
@@ -45,6 +49,25 @@ export default function AssetDeepDivePage({
     }, 600);
   };
 
+  const handleSelectEvent = (evtId: string | null) => {
+    setSelectedEventId(evtId);
+    if (!evtId) {
+      setSidecarPrompt(undefined);
+      return;
+    }
+    
+    // Wire up dynamic prompts for the Sidecar based on timeline clicks
+    if (evtId === "news_2") {
+      setSidecarPrompt("Analyze the yield impact of the recent NPR 35 dividend.");
+    } else if (evtId === "news_1") {
+      setSidecarPrompt("How does the 14% Q3 net profit growth affect NABIL's P/E?");
+    } else if (evtId === "news_3") {
+      setSidecarPrompt("Analyze the value impact of the FMO USD 25M credit line.");
+    } else if (evtId === "news_4") {
+      setSidecarPrompt("Evaluate grid integration impact of the 8.5 MW Piluwa testing.");
+    }
+  };
+
   if (!activeStock) {
     return (
       <div className="flex-1 flex items-center justify-center font-mono text-xs text-zinc-500">
@@ -53,7 +76,6 @@ export default function AssetDeepDivePage({
     );
   }
 
-  // Determine soft glowing class names for under-valued vs expensive indices
   const isUndervalued = activeStock.pe < 20.0;
 
   return (
@@ -102,7 +124,7 @@ export default function AssetDeepDivePage({
         </div>
       </div>
 
-      {/* Primary bifurcated columns (Left 60% with timeseries/news, Right 40% with sidecar assistant) */}
+      {/* Primary columns */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 flex-1">
         {/* Left deep-dive column */}
         <div className="lg:col-span-6 flex flex-col space-y-4">
@@ -110,11 +132,17 @@ export default function AssetDeepDivePage({
           <TimeseriesChart 
             symbol={activeStock.symbol} 
             price={activeStock.price} 
-            sparkline={activeStock.sparkline} 
+            sparkline={activeStock.sparkline}
+            selectedEventId={selectedEventId}
+            onSelectEventId={handleSelectEvent}
           />
 
           {/* Aggregated scraped news logs accordion */}
-          <NewsTimeline news={news} />
+          <NewsTimeline 
+            news={news} 
+            selectedNewsId={selectedEventId}
+            onSelectNewsId={handleSelectEvent}
+          />
         </div>
 
         {/* Right Isolated Sidecar Assistant column */}
@@ -123,6 +151,7 @@ export default function AssetDeepDivePage({
             symbol={activeStock.symbol} 
             price={activeStock.price} 
             pe={activeStock.pe} 
+            triggerPrompt={sidecarPrompt}
           />
         </div>
       </div>
