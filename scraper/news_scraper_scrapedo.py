@@ -24,28 +24,36 @@ OUTPUT_FILE = "nepse_news_scrapedo.json"
 API_TOKEN = os.environ.get("SCRAPE_DO_TOKEN", "")
 
 
-def scrape_do_get(url, render=True, wait_ms=3000, retries=3, timeout=90):
-    """Fetch a URL through scrape.do with retries and exponential backoff."""
-    params = {
-        "token": API_TOKEN,
-        "url": url,
-        "render": "true" if render else "false",
-        "customWait": str(wait_ms),
-        # Uncomment for stubborn Cloudflare blocks (costs more credits):
-        # "super": "true",
-        # "geoCode": "us",
-    }
-    api_url = f"https://api.scrape.do/?{urlencode(params)}"
+# Escalating anti-block profiles, per scrape.do's "How to Solve Blocking Issues":
+# 1. Headless browser with resources unblocked (some sites need CSS/images)
+# 2. + super residential proxy with geo targeting (costs more credits)
+# 3. + much longer wait and networkidle2 for slow/dynamic pages
+PROFILES = [
+    {"render": "true", "blockResources": "false", "customWait": "4000"},
+    {"render": "true", "blockResources": "false", "customWait": "5000",
+     "super": "true", "geoCode": "us"},
+    {"render": "true", "blockResources": "false", "customWait": "10000",
+     "super": "true", "geoCode": "us", "waitUntil": "networkidle2"},
+]
 
-    for attempt in range(1, retries + 1):
+
+def scrape_do_get(url, wait_selector=None, timeout=150):
+    """Fetch a URL through scrape.do, escalating anti-block settings on failure."""
+    for level, profile in enumerate(PROFILES, 1):
+        params = {"token": API_TOKEN, "url": url, **profile}
+        if wait_selector:
+            # Wait up to 10s for the element that proves content actually loaded
+            params["waitSelector"] = wait_selector
+        api_url = f"https://api.scrape.do/?{urlencode(params)}"
         try:
             resp = requests.get(api_url, timeout=timeout)
             if resp.status_code == 200 and resp.text.strip():
                 return resp.text
-            print(f"  [attempt {attempt}/{retries}] HTTP {resp.status_code}")
+            print(f"  [profile {level}/{len(PROFILES)}] HTTP {resp.status_code}"
+                  f" - escalating anti-block settings...")
         except requests.RequestException as exc:
-            print(f"  [attempt {attempt}/{retries}] {exc}")
-        time.sleep(2 ** attempt)  # 2s, 4s, 8s backoff
+            print(f"  [profile {level}/{len(PROFILES)}] {exc}")
+        time.sleep(3)
     return None
 
 
@@ -110,7 +118,7 @@ def main():
         sys.exit("Set the SCRAPE_DO_TOKEN environment variable first.")
 
     print(f"Fetching listing: {LIST_URL}")
-    listing_html = scrape_do_get(LIST_URL, wait_ms=4000)
+    listing_html = scrape_do_get(LIST_URL, wait_selector=".post")
     if not listing_html:
         sys.exit("Could not fetch the news listing page.")
 
@@ -122,7 +130,7 @@ def main():
     for i, article in enumerate(articles, 1):
         print(f"[{i}/{len(articles)}] {article['title']}")
         if "detail" in article["link"]:
-            detail_html = scrape_do_get(article["link"], wait_ms=1500)
+            detail_html = scrape_do_get(article["link"], wait_selector="#postDescriptions")
             article["content"] = parse_article(detail_html) if detail_html else ""
         else:
             article["content"] = ""
