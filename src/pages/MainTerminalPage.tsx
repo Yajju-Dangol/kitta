@@ -28,6 +28,7 @@ export default function MainTerminalPage({
   const [isStreaming, setIsStreaming] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [isLowLatencyIngesting, setIsLowLatencyIngesting] = useState(false); //Slow pulse ember trigger state
+  const [chartPath, setChartPath] = useState<string | null>(null);
   
   const activeStock = stocks.find((s) => s.symbol === selectedSymbol) || stocks[0];
 
@@ -113,8 +114,12 @@ export default function MainTerminalPage({
         return res.json();
       })
       .then((data) => {
-        // Complete traces with success
-        setTimeout(() => {
+        setIsLowLatencyIngesting(false);
+        setNarrativeText(data.analysis);
+        
+        if (data.traces && data.traces.length > 0) {
+          setTraces(data.traces);
+        } else {
           setTraces((prev) => [
             ...prev,
             {
@@ -124,13 +129,15 @@ export default function MainTerminalPage({
               timestamp: new Date().toISOString()
             }
           ]);
-          setIsLowLatencyIngesting(false);
-          setNarrativeText(data.analysis);
-          
-          if (data.symbol && data.symbol !== "NEPSE") {
-            onSelectSymbol(data.symbol);
-          }
-        }, 800);
+        }
+        
+        if (data.chart_path) {
+           setChartPath(data.chart_path);
+        }
+        
+        if (data.symbol && data.symbol !== "NEPSE") {
+          onSelectSymbol(data.symbol);
+        }
       })
       .catch(() => {
         setTimeout(() => {
@@ -220,7 +227,7 @@ We suggest reviewing comparative lists in the Watchlist Forge panel before execu
 
         {/* Right numerical evidence data matrix */}
         <div className="lg:col-span-4 flex flex-col">
-          <EvidenceMatrix metrics={activeStock} />
+          <EvidenceMatrix metrics={activeStock} chartPath={chartPath} />
           
           {/* Transition button to Drilldown Page */}
           <button

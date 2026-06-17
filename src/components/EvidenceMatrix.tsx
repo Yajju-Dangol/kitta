@@ -14,9 +14,10 @@ interface EvidenceMatrixProps {
     divYield: number;
     sentiment: number; // 0 to 100
   };
+  chartPath?: string | null;
 }
 
-export default function EvidenceMatrix({ metrics }: EvidenceMatrixProps) {
+export default function EvidenceMatrix({ metrics, chartPath }: EvidenceMatrixProps) {
   const isUp = metrics.price >= metrics.open;
   const percentChange = ((metrics.price - metrics.open) / (metrics.open || 1)) * 100;
 
@@ -178,6 +179,24 @@ export default function EvidenceMatrix({ metrics }: EvidenceMatrixProps) {
           </div>
         </div>
       </div>
+
+      {/* Generated Technical Chart */}
+      {chartPath && (
+        <div className="mt-4 border-t border-zinc-800/40 pt-4">
+          <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2 flex items-center justify-between">
+            <span>Agent Generated Technical Chart</span>
+            <span className="text-[#10B981] flex items-center"><Sparkles className="w-3 h-3 mr-1"/> Live</span>
+          </div>
+          <div className="rounded-xl overflow-hidden border border-zinc-800 bg-[#0c0c0e] flex items-center justify-center p-1">
+            <img 
+              src={chartPath + "?t=" + Date.now()} 
+              alt={`Technical Chart for ${metrics.symbol}`} 
+              className="w-full h-auto rounded-lg"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -244,168 +244,57 @@ app.post("/api/interrogate", async (req, res) => {
     return res.status(400).json({ error: "No prompt query provided." });
   }
 
-  // Normalize prompt key for cache mapping
-  const normalizedKey = (prompt + "_" + (selectedSymbol || "")).toLowerCase();
-  const isCacheHit = queryCache.has(normalizedKey);
+  const activeSymbol = selectedSymbol || "NEPSE";
 
-  // Match which stock symbol the user is focusing on
-  let targetStock = STOCKS_DB.find(s => s.symbol === selectedSymbol);
-  if (!targetStock) {
-    // Try to find if user typed the symbol in the prompt
-    for (const sub of STOCKS_DB) {
-      if (prompt.toUpperCase().includes(sub.symbol)) {
-        targetStock = sub;
-        break;
-      }
-    }
-  }
-
-  // Generate real agentic tracing steps
-  const activeSymbol = targetStock ? targetStock.symbol : "NEPSE";
-  const mockTraces = [
-    {
-      id: "trace_1",
-      text: `[tool call] get_stock_price(symbol='${activeSymbol}') → { price: ${targetStock ? targetStock.price : 2087}, 52w_high: ${targetStock ? targetStock.high52 : 2500}, 52w_low: ${targetStock ? targetStock.low52 : 1800} }`,
-      status: "info",
-      timestamp: new Date().toISOString()
-    },
-    {
-      id: "trace_2",
-      text: `[tool call] get_fundamentals(symbol='${activeSymbol}') → { EPS: ${targetStock ? targetStock.eps : "N/A"}, PE: ${targetStock ? targetStock.pe : "N/A"}, NAV: ${targetStock ? targetStock.nav : "N/A"}, div_yield: ${targetStock ? targetStock.divYield + "%" : "N/A"} }`,
-      status: "info",
-      timestamp: new Date().toISOString()
-    },
-    {
-      id: "trace_3",
-      text: `[tool call] search_market_data(query='${targetStock ? targetStock.sector : "NEPSE"} average P/E') → { sector_avg_PE: 18.5 }`,
-      status: "info",
-      timestamp: new Date().toISOString()
-    },
-    {
-      id: "trace_4",
-      text: `[tool call] get_news(symbol='${activeSymbol}', days=7) → [Found relevant news articles regarding ${activeSymbol}]`,
-      status: "success",
-      timestamp: new Date().toISOString()
-    },
-    {
-      id: "trace_5",
-      text: `[reason] Analyzing ${activeSymbol} P/E ratio against historical ranges and sector dynamics. Sentiment indexed.`,
-      status: "success",
-      timestamp: new Date().toISOString()
-    }
-  ];
-
-  // If cached and cacheHit simulation is desired, return instantly
-  if (isCacheHit) {
-    const cachedResponse = queryCache.get(normalizedKey);
-    return res.json({
-      ...cachedResponse,
-      cacheHit: true,
-      traces: [
-        {
-          id: "cache_1",
-          text: `[Cache Hit: System State Synchronized for query: ${prompt}]`,
-          status: "success",
-          timestamp: new Date().toISOString()
-        },
-        ...mockTraces
-      ]
-    });
-  }
-
-  // If not cached, let's call the real Google Gemini API!
   try {
-    const client = getGeminiClient();
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    let responseText = "";
-
-    if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
-      // Return beautiful structured mock output matching Nepal stock exchange metrics when no API key is specified
-      responseText = `### Kitta Stock Appraisal Report: **${activeSymbol}**
-
-Based on active metrics processed across Nepali market data matrices, here is the official system synthesis.
-
-- **Current Evaluation**: The stock of **${activeSymbol}** is currently priced at **NPR ${targetStock ? targetStock.price : '1,245'}**. This sits approximately **18.0% below its 52-week high**, indicating dynamic support at key local ranges.
-- **Ratios Analysis**:
-  - **P/E Ratio**: ${targetStock ? targetStock.pe : '21.4'} (Sector average is **18.5**). While this indicates a ${targetStock && targetStock.pe > 18.5 ? "premium of " + Math.round((targetStock.pe/18.5 - 1)*100) + "%" : "discount relative"} to banking sector averages, it is balanced by high-efficiency capital utilization.
-  - **Earnings Per Share (EPS)**: NPR ${targetStock ? targetStock.eps : '58.2'}, matching optimal profit expansion matrices.
-  - **Net Asset Value (NAV)**: NPR ${targetStock ? targetStock.nav : '212'} per share.
-  - **Dividend Yield**: ${targetStock ? targetStock.divYield : '3.1'}%, producing consistent income generation parameters.
-- **Sentiment Spectrum**: FinBERT automated narrative index shows **${targetStock ? targetStock.sentiment : '65'}% Bullish** conditions supported by local social sentiment tracks and ShareSansar Q3 filings.
-
-#### **Recommendation Analysis**
-*   **Existing Positions**: **HOLD**. The underlying fundamentals remain structurally resilient, with strong local liquidity buffers.
-*   **New Ingestion Paths**: **ACCUMULATE** on lower bounds near entry thresholds. For long-term portfolios looking at a 12-month horizon, current levels represent lower-risk ingestion windows.
-`;
-    } else {
-      // Build a premium contextual prompt to keep the appraisal accurate and realistic
-      const stockContext = targetStock
-        ? `Stock Details: Symbol: ${targetStock.symbol}, Name: ${targetStock.name}, Price: NPR ${targetStock.price}, EPS: ${targetStock.eps}, PE: ${targetStock.pe}, NAV: ${targetStock.nav}, Dividend Yield: ${targetStock.divYield}%, Sector: ${targetStock.sector}, SentimentScore: ${targetStock.sentiment}%.`
-        : `Overall NEPSE Index level is 2,087.45.`;
-      
-      const newsContext = NEWS_DB.filter(n => n.symbol === activeSymbol)
-        .map(n => `- Date: ${n.date}, Title: ${n.title}, Summary: ${n.summary}`)
-        .join("\n");
-
-      const systemPrompt = `You are KITTA (किट्टा), an advanced agentic Artificial Intelligence financial terminal designed specifically for the Nepal Stock Exchange (NEPSE).
-Your tone is professional, hyper-analytical, objective, and clear. Avoid marketing hype or flowery self-praise.
-Provide a high-density, explainable financial appraisal grounded in actual numbers.
-
-Analyze this query: "${prompt}".
-Use the following real-time data matrix as your absolute source of truth:
-${stockContext}
-
-Relevant News Scrape:
-${newsContext}
-
-Your response must be in beautiful Markdown format. State the core numbers clearly. Make explicit final recommendations (BUY, HOLD, ACCUMULATE, or REDUCE) and justify them using EPS growth, P/E relative to sector averages (Banking: 18.5, Hydropower: 22.0), and recent news/announcements.`;
-
-      const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: systemPrompt,
-          temperature: 0.15,
-        }
-      });
-
-      responseText = response.text || "Unable to generate appraisal metrics.";
+    const response = await fetch("http://127.0.0.1:8000/api/interrogate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, symbol: activeSymbol })
+    });
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`FastAPI agent response error: ${errText}`);
     }
 
-    const payload = {
-      analysis: responseText,
-      traces: mockTraces,
-      cacheHit: false,
-      symbol: activeSymbol,
-      metrics: targetStock || {
-        symbol: "NEPSE",
-        name: "Nepal Stock Exchange Index",
-        price: 2087,
-        open: 2072,
-        high52: 2450,
-        low52: 1750,
-        volume: "5.4B",
-        sector: "Market Index",
-        eps: 0,
-        pe: 18.5,
-        nav: 0,
-        divYield: 1.5,
-        sentiment: 50,
-        sparkline: [2050, 2060, 2055, 2070, 2080, 2075, 2087]
-      }
-    };
-
-    // Save to cache for simulation
-    queryCache.set(normalizedKey, payload);
-
-    return res.json(payload);
+    const data = await response.json();
+    return res.json(data);
   } catch (error: any) {
-    console.error("Gemini invocation error: ", error);
+    console.error("Gemini invocation error proxying to FastAPI: ", error);
+    
+    // Return structured mock trace on connection failure
+    const mockTraces = [
+      {
+        id: "trace_fail",
+        text: `[Connection Fail] Failed to connect to FastAPI Multi-Agent server. Ensure it is running.`,
+        status: "error",
+        timestamp: new Date().toISOString()
+      }
+    ];
+    
     return res.status(500).json({
-      error: `Gemini Terminal Error: ${error.message || "An unpredictable API error occurred."}`,
-      traces: mockTraces
+      error: `FastAPI Engine Connection Failure: ${error.message || "FastAPI server unreachable."}`,
+      traces: mockTraces,
+      analysis: "### KITTA Terminal Connection Offline\n\nThe Python FastAPI server hosting the Google ADK Multi-Agent workflow is currently offline or unreachable. Please run the server using `uvicorn main:app --reload` in the `scraper` folder."
     });
+  }
+});
+
+// Proxy route for generating/fetching visual technical charts
+app.get("/api/chart/:symbol", async (req, res) => {
+  const { symbol } = req.params;
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/chart/${symbol}`);
+    if (!response.ok) {
+      return res.status(response.status).send("Chart not found in FastAPI");
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    res.setHeader("Content-Type", "image/png");
+    return res.send(Buffer.from(arrayBuffer));
+  } catch (error: any) {
+    console.error("Error proxying chart request to FastAPI:", error);
+    return res.status(500).send("Proxy error fetching chart from FastAPI server");
   }
 });
 
