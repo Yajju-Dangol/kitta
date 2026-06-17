@@ -170,23 +170,23 @@ We suggest reviewing comparative lists in the Watchlist Forge panel before execu
       <div 
         className={`bg-[#09090b] rounded-xl border transition-all duration-500 p-5 relative ${
           isLowLatencyIngesting 
-            ? 'border-[#10B981]/55 ring-2 ring-[#10B981]/5 shadow-[0_0_12px_rgba(16,185,129,0.06)]' 
-            : 'border-zinc-800 focus-within:border-[#10B981]/80 shadow-sm'
+            ? 'border-zinc-700 shadow-sm' 
+            : 'border-zinc-800 focus-within:border-zinc-700 shadow-sm'
         }`}
       >
-        <div className="flex items-center space-x-3 bg-zinc-950 border border-zinc-800 rounded-lg focus-within:border-[#10B981]/60 px-4 py-2.5 transition-all">
+        <div className="flex items-center space-x-3 bg-zinc-900/50 border border-zinc-800 rounded-lg focus-within:border-zinc-700 px-4 py-2.5 transition-all">
           <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
           <input
             type="text"
             value={queryInput}
             onChange={(e) => setQueryInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleExecuteQuery(); }}
-            placeholder="Search & analyze any NEPSE equity valuation... (e.g. 'Is NABIL Bank a value buy?')"
-            className="w-full bg-transparent border-none outline-none font-sans text-xs text-zinc-100 placeholder-zinc-500 focus:ring-0 focus:outline-none"
+            placeholder="Search for a stock to analyze..."
+            className="w-full bg-transparent border-none outline-none font-sans text-sm text-zinc-100 placeholder-zinc-500 focus:ring-0 focus:outline-none"
           />
           <button 
             onClick={() => handleExecuteQuery()}
-            className="bg-[#10B981] text-black hover:bg-[#10B981]/80 font-sans text-[11px] font-bold px-4 py-2 rounded-md transition-colors cursor-pointer"
+            className="bg-zinc-100 text-black hover:bg-white font-sans text-xs font-semibold px-4 py-2 rounded-md transition-colors cursor-pointer"
           >
             Analyze
           </button>
@@ -194,15 +194,15 @@ We suggest reviewing comparative lists in the Watchlist Forge panel before execu
 
         {/* Search quick prompts */}
         <div className="flex flex-wrap items-center gap-2.5 mt-3 font-sans text-xs text-zinc-500">
-          <span className="text-zinc-400 font-semibold flex items-center space-x-1 flex-shrink-0">
-            <Flame className="w-3.5 h-3.5 text-[#10B981]" />
-            <span>Suggested Topics:</span>
+          <span className="text-zinc-500 font-medium flex items-center space-x-1 flex-shrink-0">
+            <Flame className="w-3.5 h-3.5 text-zinc-500" />
+            <span>Suggested:</span>
           </span>
           {["Is NABIL Bank a good buy?", "Analyze NMB Bank", "AHPC Technical assessment"].map((p, idx) => (
             <button
               key={idx}
               onClick={() => { setQueryInput(p); handleExecuteQuery(p); }}
-              className="bg-zinc-900/60 border border-zinc-805/40 hover:border-[#10B981]/40 px-2.5 py-1 rounded text-zinc-400 hover:text-zinc-200 transition-all text-[11px]"
+              className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-md text-zinc-400 hover:text-zinc-200 transition-all text-[11px]"
             >
               {p}
             </button>
@@ -232,10 +232,10 @@ We suggest reviewing comparative lists in the Watchlist Forge panel before execu
           {/* Transition button to Drilldown Page */}
           <button
             onClick={onNavigateToDrillDown}
-            className="w-full mt-4 py-3 rounded-lg border border-zinc-800 hover:border-[#10B981]/60 bg-zinc-900/80 hover:bg-zinc-900 text-zinc-300 hover:text-white font-sans text-xs font-semibold tracking-wide flex items-center justify-center space-x-2.5 transition-all cursor-pointer select-none shadow-sm"
+            className="w-full mt-4 py-3 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800/50 text-zinc-300 hover:text-white font-sans text-xs font-semibold flex items-center justify-center space-x-2.5 transition-all cursor-pointer shadow-sm"
           >
-            <span>Explore Comprehensive Financial Dashboard</span>
-            <LayoutGrid className="w-4 h-4 text-[#10B981]" />
+            <span>View Full Dashboard</span>
+            <LayoutGrid className="w-4 h-4 text-zinc-400" />
           </button>
         </div>
       </div>

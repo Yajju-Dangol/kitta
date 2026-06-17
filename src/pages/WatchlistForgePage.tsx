@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Stock, AlertRule } from "../types";
-import SpreadsheetGrid from "../components/SpreadsheetGrid";
 import DrawerSlideOver from "../components/DrawerSlideOver";
-import SidecarAssistant from "../components/SidecarAssistant";
-import { Sliders, X, ShieldAlert } from "lucide-react";
+import { AnimatedAIChat } from "../components/ui/animated-ai-chat";
+import { FinancialTable } from "../components/ui/financial-markets-table";
+import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 interface WatchlistForgePageProps {
@@ -23,30 +23,9 @@ export default function WatchlistForgePage({
   const [sidecarOpen, setSidecarOpen] = useState(false);
   const [targetSymbol, setTargetSymbol] = useState("NABIL");
 
-  const handleEditAlertRules = (symbol: string) => {
-    setTargetSymbol(symbol);
-    setDrawerOpen(true);
-  };
-
   const handleAskAI = (symbol: string) => {
     setTargetSymbol(symbol);
     setSidecarOpen(true);
-  };
-
-  const handleToggleAlert = (id: string) => {
-    fetch(`/api/alerts/toggle/${id}`, { method: "POST" })
-      .then((res) => {
-        if (res.ok) onRefreshAlerts();
-      })
-      .catch(() => {});
-  };
-
-  const handleDeleteAlert = (id: string) => {
-    fetch(`/api/alerts/${id}`, { method: "DELETE" })
-      .then((res) => {
-        if (res.ok) onRefreshAlerts();
-      })
-      .catch(() => {});
   };
 
   const handleCommitParameters = (symbol: string, rule: { metric: 'PE' | 'Price' | 'DivYield'; operator: '<' | '>'; value: number }) => {
@@ -67,48 +46,14 @@ export default function WatchlistForgePage({
   const activeStock = stocks.find(s => s.symbol === targetSymbol) || stocks[0];
 
   return (
-    <div className="flex-1 flex flex-col p-4.5 space-y-4 overflow-y-auto">
-      {/* Upper watchlist table matrix */}
-      <SpreadsheetGrid
+    <div className="flex-1 flex flex-col p-4.5 space-y-4 overflow-y-auto w-full max-w-full">
+      {/* High-Performance Animated Watchlist Matrix */}
+      <FinancialTable 
+        title="NEPSE Active Watchlist"
         stocks={stocks}
-        alerts={alerts}
-        onTriggerInterrogation={handleAskAI}
-        onEditTelemetryRules={handleEditAlertRules}
-        onToggleAlert={handleToggleAlert}
-        onDeleteAlert={handleDeleteAlert}
-        currentSymbol={targetSymbol}
+        onStockSelect={handleAskAI}
+        className="mt-2"
       />
-
-      {/* AI Scanner Settings View on bottom */}
-      <div className="bg-[#09090B] border border-zinc-800/80 p-4 rounded-xl space-y-3 shadow-sm">
-        <div className="flex items-center space-x-2 border-b border-zinc-800/50 pb-2 font-sans">
-          <Sliders className="w-4 h-4 text-[#10B981]" />
-          <span className="text-[10px] text-zinc-400 font-bold uppercase">AI Scanner Settings</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-black/30 border border-zinc-800/60 p-3.5 rounded-lg space-y-1.5">
-            <span className="font-sans text-[9px] text-[#10B981] block font-bold uppercase tracking-wide">Real-Time Price Monitor</span>
-            <p className="font-sans text-xs text-zinc-400 leading-normal">
-              Continuously scans NEPSE tickers every 5 minutes. Configured to alert you on sudden price drops or momentum breakouts.
-            </p>
-          </div>
-
-          <div className="bg-black/30 border border-zinc-800/60 p-3.5 rounded-lg space-y-1.5">
-            <span className="font-sans text-[9px] text-zinc-500 block font-bold uppercase tracking-wide">Valuation Scanner</span>
-            <p className="font-sans text-xs text-zinc-400 leading-normal">
-              Evaluates target P/E ratios against standard sector averages (Banking: 18.5, Hydropower: 22.0) to highlight deep value setups.
-            </p>
-          </div>
-
-          <div className="bg-black/30 border border-zinc-800/60 p-3.5 rounded-lg space-y-1.5">
-            <span className="font-sans text-[9px] text-zinc-500 block font-bold uppercase tracking-wide">Official NEPSE Document Crawler</span>
-            <p className="font-sans text-xs text-zinc-400 leading-normal">
-              Scans company quarter reports and regulatory notices in real-time. Data freshness caches carry a 24-hour expiration duration.
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Flyout rules creation drawer */}
       <DrawerSlideOver
@@ -120,7 +65,7 @@ export default function WatchlistForgePage({
 
       {/* Slideover for Sidecar Assistant */}
       <AnimatePresence>
-        {sidecarOpen && (
+        {sidecarOpen && activeStock && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -136,7 +81,7 @@ export default function WatchlistForgePage({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed right-0 top-0 bottom-0 w-[420px] bg-[#09090B] border-l border-zinc-850 shadow-2xl z-50 flex flex-col"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[#09090B] border-l border-[#202024] shadow-2xl z-50 flex flex-col"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-zinc-800/80 bg-black/40">
@@ -152,12 +97,10 @@ export default function WatchlistForgePage({
                 </button>
               </div>
               {/* Sidecar container */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <SidecarAssistant
-                  symbol={targetSymbol}
-                  price={activeStock.price}
-                  pe={activeStock.pe}
-                />
+              <div className="flex-1 min-h-0 overflow-y-auto relative">
+                <div className="absolute inset-0 scale-[0.8] origin-top">
+                   <AnimatedAIChat />
+                </div>
               </div>
             </motion.div>
           </>

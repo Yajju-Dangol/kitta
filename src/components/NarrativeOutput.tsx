@@ -74,10 +74,10 @@ export default function NarrativeOutput({ text, isStreaming, history = [], onSel
       ];
 
       return (
-        <div className="space-y-5 py-2 font-sans">
+        <div className="space-y-4 py-2 font-sans">
           <div className="flex flex-col space-y-1">
-            <span className="text-[10px] text-[#10B981] font-semibold uppercase tracking-wider">Market Intelligence Radar</span>
-            <h3 className="text-sm font-bold text-zinc-150 uppercase tracking-tight">Trending AI Insights</h3>
+            <span className="text-[11px] text-zinc-500 font-medium">Market Overview</span>
+            <h3 className="text-sm font-bold text-zinc-100">Latest Insights</h3>
           </div>
 
           <div className="grid grid-cols-1 gap-3.5">
@@ -85,20 +85,16 @@ export default function NarrativeOutput({ text, isStreaming, history = [], onSel
               <div 
                 key={idx}
                 onClick={() => onSelectHistory && onSelectHistory(insight.prompt)}
-                className="bg-black/35 border border-zinc-800 hover:border-[#10B981]/50 p-4.5 rounded-xl hover:bg-[#141417]/30 transition-all cursor-pointer group shadow-sm flex flex-col space-y-2"
+                className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl hover:bg-zinc-800/50 transition-all cursor-pointer group shadow-sm flex flex-col space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-[9px] font-mono text-[#10B981] uppercase tracking-wider font-bold">
+                  <div className="flex items-center space-x-2 text-xs font-semibold text-zinc-400">
                     {insight.icon}
                     <span>{insight.tag}</span>
                   </div>
-                  <span className="text-[8.5px] font-semibold text-zinc-500 uppercase tracking-wider group-hover:text-[#10B981] transition-colors flex items-center space-x-0.5">
-                    <span>Scan Insights</span>
-                    <span>→</span>
-                  </span>
                 </div>
                 
-                <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors">
+                <h4 className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">
                   {insight.title}
                 </h4>
                 
@@ -165,15 +161,15 @@ export default function NarrativeOutput({ text, isStreaming, history = [], onSel
   return (
     <div id="narrative-output-panel" className="bg-[#09090b] rounded-xl border border-zinc-800/80 flex flex-col justify-between flex-1 overflow-hidden min-h-[380px] shadow-sm font-sans">
       {/* Title block */}
-      <div className="h-11 px-4 border-b border-zinc-800/50 flex items-center justify-between text-xs uppercase bg-black/20">
+      <div className="h-12 px-4 border-b border-zinc-800/50 flex items-center justify-between text-xs bg-zinc-900/30">
         <div className="flex items-center space-x-2">
-          <FileText className="w-4 h-4 text-[#10B981]" />
-          <span className="text-zinc-200 font-bold tracking-wider">AI Stock Analysis</span>
+          <FileText className="w-4 h-4 text-zinc-400" />
+          <span className="text-zinc-300 font-semibold">Analysis Output</span>
         </div>
         {isStreaming && (
-          <span className="flex items-center space-x-1.5 bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded-full">
-            <RefreshCw className="w-3 h-3 text-[#10B981] animate-spin" />
-            <span className="text-[9px] text-[#10B981] tracking-wider font-semibold font-sans">STREAMING ANALYSIS</span>
+          <span className="flex items-center space-x-1.5 bg-zinc-800/50 border border-zinc-700 px-2.5 py-1 rounded-full">
+            <RefreshCw className="w-3.5 h-3.5 text-zinc-400 animate-spin" />
+            <span className="text-[10px] text-zinc-300 font-medium">Generating...</span>
           </span>
         )}
       </div>
@@ -185,12 +181,12 @@ export default function NarrativeOutput({ text, isStreaming, history = [], onSel
 
       {/* Navigation summary history items */}
       {history.length > 0 && (
-        <div className="border-t border-zinc-800/50 p-2.5 bg-zinc-950/60 flex items-center space-x-2 overflow-x-auto select-none">
-          <div className="flex items-center space-x-1.5 text-zinc-500 font-sans text-[10px] uppercase px-2 border-r border-zinc-800/80 flex-shrink-0">
-            <History className="w-3.5 h-3.5 text-zinc-500" />
-            <span className="font-semibold">Recent topics:</span>
+        <div className="border-t border-zinc-800/50 p-3 bg-zinc-900/30 flex items-center space-x-3 overflow-x-auto select-none">
+          <div className="flex items-center space-x-1.5 text-zinc-500 text-xs px-2 border-r border-zinc-800/80 flex-shrink-0">
+            <History className="w-3.5 h-3.5" />
+            <span className="font-medium">Recent:</span>
           </div>
-          <div className="flex space-x-2 text-[10px] pb-1">
+          <div className="flex space-x-2 text-xs">
             {history.map((hist, index) => (
               <button
                 key={index}

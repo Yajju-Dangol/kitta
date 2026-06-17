@@ -1,7 +1,7 @@
 import urllib.parse
 import xml.etree.ElementTree as ET
 import requests
-from chart_generator import generate_technical_chart
+from services.chart_engine import generate_technical_chart
 
 
 def search_stock_news(symbol: str) -> str:

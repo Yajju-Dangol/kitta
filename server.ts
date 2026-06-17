@@ -298,6 +298,21 @@ app.get("/api/chart/:symbol", async (req, res) => {
   }
 });
 
+app.get("/api/metrics/:symbol", async (req, res) => {
+  const { symbol } = req.params;
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/metrics/${symbol}`);
+    if (!response.ok) {
+      return res.status(response.status).json({error: "Metrics not found in FastAPI"});
+    }
+    const data = await response.json();
+    return res.json(data);
+  } catch (error: any) {
+    console.error("Error proxying metrics request to FastAPI:", error);
+    return res.status(500).json({error: "Proxy error fetching metrics from FastAPI server"});
+  }
+});
+
 // Start server
 async function boot() {
   // Vite setup for development

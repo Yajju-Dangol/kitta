@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
 from agents import run_analysis_workflow
-from chart_generator import generate_technical_chart
+from services.chart_engine import generate_technical_chart
 
 app = FastAPI(title="KITTA AI Agent API", version="1.0.0")
 
@@ -30,7 +30,7 @@ def health_check():
     return {"status": "ok", "service": "FastAPI AI Agent Engine"}
 
 @app.post("/api/interrogate")
-def interrogate(payload: InterrogateRequest):
+async def interrogate(payload: InterrogateRequest):
     try:
         symbol = payload.symbol.strip().upper()
         if not symbol:
@@ -48,7 +48,10 @@ def interrogate(payload: InterrogateRequest):
         
         return response
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Agent system error: {str(e)}")
+        import traceback
+        tb = traceback.format_exc()
+        print(tb)
+        raise HTTPException(status_code=500, detail=f"AI Agent system error: {str(e)}\nTraceback:\n{tb}")
 
 @app.get("/api/chart/{symbol}")
 def get_chart(symbol: str):
@@ -62,6 +65,20 @@ def get_chart(symbol: str):
             raise HTTPException(status_code=404, detail=f"Chart not found for symbol {symbol}")
             
     return FileResponse(chart_path)
+
+@app.get("/api/metrics/{symbol}")
+def get_metrics(symbol: str):
+    try:
+        symbol = symbol.strip().upper()
+        res = generate_technical_chart(symbol)
+        if res.get("status") == "error":
+             raise HTTPException(status_code=404, detail=res.get("message", "Metrics not found"))
+        return res
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print(tb)
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

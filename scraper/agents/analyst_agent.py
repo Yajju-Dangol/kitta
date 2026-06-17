@@ -3,10 +3,20 @@ from agents.news_agent import news_agent
 from agents.chart_analyst import chart_analyst_agent
 from google.adk.runners import Runner
 
+from google.adk.sessions import InMemorySessionService
+from google.genai import types
+import time
+
 def get_news_summary(symbol: str) -> str:
     """Gets the latest news and sentiment summary for the given stock symbol."""
-    runner = Runner(agent=news_agent)
-    events = runner.run(new_message=f"Analyze news for {symbol}")
+    app_name = "kitta_app_news"
+    session_id = f"session_news_{symbol}_{int(time.time())}"
+    session_service = InMemorySessionService()
+    session_service.create_session_sync(app_name=app_name, user_id="user_kitta", session_id=session_id)
+    runner = Runner(agent=news_agent, app_name=app_name, session_service=session_service)
+    
+    msg = types.Content(role='user', parts=[types.Part(text=f"Analyze news for {symbol}")])
+    events = runner.run(user_id="user_kitta", session_id=session_id, new_message=msg)
     for event in events:
         if event.is_final_response() and event.content:
             return event.content.parts[0].text.strip()
@@ -14,8 +24,14 @@ def get_news_summary(symbol: str) -> str:
 
 def get_chart_analysis(symbol: str) -> str:
     """Runs technical analysis and indicator calculations for the given stock symbol."""
-    runner = Runner(agent=chart_analyst_agent)
-    events = runner.run(new_message=f"Analyze chart for {symbol}")
+    app_name = "kitta_app_chart"
+    session_id = f"session_chart_{symbol}_{int(time.time())}"
+    session_service = InMemorySessionService()
+    session_service.create_session_sync(app_name=app_name, user_id="user_kitta", session_id=session_id)
+    runner = Runner(agent=chart_analyst_agent, app_name=app_name, session_service=session_service)
+    
+    msg = types.Content(role='user', parts=[types.Part(text=f"Analyze chart for {symbol}")])
+    events = runner.run(user_id="user_kitta", session_id=session_id, new_message=msg)
     for event in events:
         if event.is_final_response() and event.content:
             return event.content.parts[0].text.strip()
@@ -23,7 +39,7 @@ def get_chart_analysis(symbol: str) -> str:
 
 analyst_agent = Agent(
     name="analyst_agent",
-    model="gemini-2.5-flash",
+    model="gemini-3.1-flash-lite",
     description="Master Analyst Agent that compiles news and chart data from specialized agents to produce stock reports.",
     instruction="""You are KITTA (किट्टा), the master AI financial analyst for the Nepal Stock Exchange (NEPSE).
     Your task is to respond to the investor's query by generating a comprehensive, high-fidelity stock appraisal.

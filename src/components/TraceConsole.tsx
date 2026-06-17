@@ -10,8 +10,8 @@ export default function TraceConsole({ traces }: TraceConsoleProps) {
   return (
     <div id="trace-console" className="bg-[#09090b] rounded-xl border border-zinc-800/80 p-4 font-sans text-xs flex flex-col space-y-2 max-h-[140px] overflow-y-auto w-full shadow-sm">
       <div className="flex items-center space-x-2 border-b border-zinc-800/50 pb-2 mb-1 text-zinc-400">
-        <Activity className="w-4 h-4 text-[#10B981]" />
-        <span className="uppercase font-semibold tracking-wider text-[10px] font-sans">AI Reasoning Stream</span>
+        <Activity className="w-4 h-4 text-zinc-400" />
+        <span className="font-semibold text-xs font-sans">System Logs</span>
       </div>
       
       {traces.length === 0 ? (

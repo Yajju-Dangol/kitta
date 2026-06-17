@@ -11,9 +11,11 @@ import MainTerminalPage from "./pages/MainTerminalPage";
 import AssetDeepDivePage from "./pages/AssetDeepDivePage";
 import WatchlistForgePage from "./pages/WatchlistForgePage";
 import MacroInsightsHubPage from "./pages/MacroInsightsHubPage";
+import LandingPage from "./pages/LandingPage";
+import { AnimatedAIChat } from "./components/ui/animated-ai-chat";
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'drilldown' | 'watchlist' | 'sandbox'>('dashboard');
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'drilldown' | 'watchlist' | 'sandbox'>('landing');
   const [selectedSymbol, setSelectedSymbol] = useState<string>("NABIL");
   const [prefilledPrompt, setPrefilledPrompt] = useState<string | undefined>(undefined);
   const [dbLatency, setDbLatency] = useState(12);
@@ -153,14 +155,9 @@ export default function App() {
     switch (currentView) {
       case 'dashboard':
         return (
-          <MainTerminalPage
-            stocks={stocks}
-            selectedSymbol={selectedSymbol}
-            onSelectSymbol={setSelectedSymbol}
-            onNavigateToDrillDown={() => setCurrentView('drilldown')}
-            prefilledPrompt={prefilledPrompt}
-            onClearPrefilledPrompt={() => setPrefilledPrompt(undefined)}
-          />
+          <div className="flex w-full h-full overflow-hidden lab-bg">
+            <AnimatedAIChat />
+          </div>
         );
       case 'drilldown':
         return (
@@ -191,6 +188,11 @@ export default function App() {
         );
     }
   };
+
+  // Handle landing page bypass
+  if (currentView === 'landing') {
+    return <LandingPage onEnterApp={() => setCurrentView('dashboard')} />;
+  }
 
   return (
     <div className="flex h-screen w-screen bg-[#000000] text-zinc-300 font-sans overflow-hidden antialiased">

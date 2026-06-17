@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChatMessage } from "../types";
-import { HelpCircle, Send, MessageSquare, ShieldCheck, Sparkles } from "lucide-react";
+import { Send, MessageSquare, ShieldCheck } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 
 interface SidecarAssistantProps {
   symbol: string;
@@ -15,7 +16,6 @@ export default function SidecarAssistant({ symbol, price, pe = 18.5, triggerProm
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Initialize with contextual message about target asset
   useEffect(() => {
     setMessages([
       {
@@ -27,14 +27,12 @@ export default function SidecarAssistant({ symbol, price, pe = 18.5, triggerProm
     ]);
   }, [symbol, price, pe]);
 
-  // Handle scrolling
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
 
-  // Listen for programmatic trigger prompts from parent components
   useEffect(() => {
     if (triggerPrompt) {
       executePrompt(triggerPrompt);
@@ -135,21 +133,19 @@ export default function SidecarAssistant({ symbol, price, pe = 18.5, triggerProm
   const suggestions = getSuggestedPrompts(symbol);
 
   return (
-    <div id="sidecar-assistant" className="bg-[#09090B] border border-zinc-800/80 rounded-xl flex flex-col justify-between h-full min-h-[450px] shadow-sm font-sans overflow-hidden">
-      {/* Title bar */}
-      <div className="h-11 px-4 border-b border-zinc-850 flex items-center justify-between text-xs uppercase bg-black/25 flex-shrink-0">
+    <Card id="sidecar-assistant" className="flex flex-col justify-between h-full min-h-[450px] shadow-sm font-sans overflow-hidden rounded-xl">
+      <CardHeader className="h-11 px-4 border-b border-zinc-850 flex flex-row items-center justify-between text-xs uppercase bg-black flex-shrink-0 py-0">
         <div className="flex items-center space-x-2">
           <MessageSquare className="w-4 h-4 text-[#10B981]" />
-          <span className="text-zinc-200 font-bold tracking-wider">Sidecar Assistant</span>
+          <CardTitle className="text-zinc-200 font-bold tracking-wider text-xs">Sidecar Assistant</CardTitle>
         </div>
         <div className="flex items-center space-x-1.5 font-mono text-[9px] text-[#10B981] uppercase font-bold">
           <ShieldCheck className="w-3.5 h-3.5" />
           <span>LOCKED TO {symbol}</span>
         </div>
-      </div>
+      </CardHeader>
 
-      {/* Messages layout */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
+      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
         {messages.map((m) => (
           <div 
             key={m.id} 
@@ -163,10 +159,9 @@ export default function SidecarAssistant({ symbol, price, pe = 18.5, triggerProm
               className={`p-3 max-w-[92%] rounded-xl text-xs leading-relaxed border ${
                 m.role === 'user' 
                   ? 'bg-zinc-900 text-zinc-150 border-zinc-800' 
-                  : 'bg-black/35 text-zinc-350 border-zinc-850 border-l-2 border-l-[#10B981]'
+                  : 'bg-black text-zinc-350 border-zinc-850 border-l-2 border-l-[#10B981]'
               }`}
             >
-              {/* Parse standard markdown paragraphs */}
               {m.text.split("\n\n").map((para, pIdx) => {
                 if (para.startsWith("### ")) {
                   return (
@@ -208,11 +203,10 @@ export default function SidecarAssistant({ symbol, price, pe = 18.5, triggerProm
             </div>
           </div>
         )}
-      </div>
+      </CardContent>
 
-      {/* Suggested Prompts Block */}
       {!isTyping && suggestions.length > 0 && (
-        <div className="px-4 py-2 bg-black/15 border-t border-zinc-850 flex-shrink-0 space-y-1.5">
+        <div className="px-4 py-2 bg-black border-t border-zinc-850 flex-shrink-0 space-y-1.5">
           <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider font-semibold block">Suggested Actions:</span>
           <div className="flex flex-wrap gap-1.5">
             {suggestions.map((sug, idx) => (
@@ -220,7 +214,7 @@ export default function SidecarAssistant({ symbol, price, pe = 18.5, triggerProm
                 key={idx}
                 type="button"
                 onClick={() => executePrompt(sug)}
-                className="bg-zinc-900/60 border border-zinc-805/60 hover:border-[#10B981]/40 text-zinc-400 hover:text-zinc-200 transition-all text-[9.5px] px-2 py-1 rounded-md text-left leading-tight cursor-pointer"
+                className="bg-zinc-900 border border-zinc-800 hover:border-[#10B981]/40 text-zinc-400 hover:text-zinc-200 transition-all text-[9.5px] px-2 py-1 rounded-md text-left leading-tight cursor-pointer"
               >
                 {sug}
               </button>
@@ -229,28 +223,29 @@ export default function SidecarAssistant({ symbol, price, pe = 18.5, triggerProm
         </div>
       )}
 
-      {/* Input controls form */}
-      <form onSubmit={handleSubmit} className="p-3 border-t border-zinc-850 bg-black/45 flex-shrink-0">
-        <div className="relative flex items-center bg-[#141417] border border-zinc-850 focus-within:border-[#10B981] focus-within:ring-1 focus-within:ring-[#10B981]/30 transition-all p-1.5 rounded-lg">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Ask AI about dividend safety, financials, P/E..."
-            className="flex-1 bg-transparent px-2.5 py-1 text-xs text-zinc-150 placeholder-zinc-500 border-none outline-none focus:ring-0 active:ring-0"
-          />
-          <button
-            type="submit"
-            disabled={!inputText.trim() || isTyping}
-            className="bg-[#10B981] hover:bg-[#10B981]/80 text-black h-8 w-8 rounded-md inline-flex items-center justify-center border border-zinc-700 transition-colors disabled:opacity-40 cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
-          </button>
-        </div>
-        <div className="text-[8px] font-mono text-zinc-600 block text-center mt-2 uppercase tracking-wide">
-          AI analysis synthesized under regulatory guidance
-        </div>
-      </form>
-    </div>
+      <CardFooter className="p-0 border-t border-zinc-850 flex-shrink-0">
+        <form onSubmit={handleSubmit} className="p-3 bg-black w-full">
+          <div className="relative flex items-center bg-[#141417] border border-zinc-850 focus-within:border-[#10B981] focus-within:ring-1 focus-within:ring-[#10B981]/30 transition-all p-1.5 rounded-lg">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Ask AI about dividend safety, financials, P/E..."
+              className="flex-1 bg-transparent px-2.5 py-1 text-xs text-zinc-150 placeholder-zinc-500 border-none outline-none focus:ring-0 active:ring-0"
+            />
+            <button
+              type="submit"
+              disabled={!inputText.trim() || isTyping}
+              className="bg-[#10B981] hover:bg-[#10B981]/80 text-black h-8 w-8 rounded-md inline-flex items-center justify-center border border-zinc-700 transition-colors disabled:opacity-40 cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
+            </button>
+          </div>
+          <div className="text-[8px] font-mono text-zinc-600 block text-center mt-2 uppercase tracking-wide">
+            AI analysis synthesized under regulatory guidance
+          </div>
+        </form>
+      </CardFooter>
+    </Card>
   );
 }

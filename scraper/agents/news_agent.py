@@ -3,7 +3,7 @@ from agents.tools import search_stock_news
 
 news_agent = Agent(
     name="news_agent",
-    model="gemini-2.5-flash",
+    model="gemini-3.1-flash-lite",
     description="News Agent specialized in searching, compiling, and summarizing all latest news for a specific stock ticker.",
     instruction="""You are a specialized financial news intelligence agent for KITTA Terminal.
     Your main job is to:

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NewsItem } from "../types";
 import { ChevronDown, ChevronUp, Link2, Newspaper, Sparkles } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface NewsTimelineProps {
   news: NewsItem[];
@@ -11,7 +12,6 @@ interface NewsTimelineProps {
 export default function NewsTimeline({ news, selectedNewsId, onSelectNewsId }: NewsTimelineProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Auto expand and highlight when selectedNewsId changes (e.g. clicked on chart)
   useEffect(() => {
     if (selectedNewsId) {
       setExpandedId(selectedNewsId);
@@ -31,19 +31,16 @@ export default function NewsTimeline({ news, selectedNewsId, onSelectNewsId }: N
   };
 
   return (
-    <div id="news-timeline-panel" className="bg-[#09090B] border border-zinc-800/80 p-4 rounded-xl flex flex-col space-y-3 shadow-sm font-sans">
-      
-      {/* Title block */}
-      <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2">
+    <Card id="news-timeline-panel" className="flex flex-col shadow-sm font-sans rounded-xl">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-800/50 pb-2 px-4 py-3">
         <div className="flex items-center space-x-2">
           <Newspaper className="w-4 h-4 text-[#10B981]" />
-          <span className="text-[10px] text-zinc-400 font-bold uppercase">Latest News</span>
+          <CardTitle className="text-[10px] text-zinc-400 font-bold uppercase">Latest News</CardTitle>
         </div>
         <span className="text-[8px] font-mono text-zinc-500 uppercase">Live Updates</span>
-      </div>
+      </CardHeader>
 
-      {/* Accordion List */}
-      <div className="space-y-2 overflow-y-auto max-h-[300px] pr-1">
+      <CardContent className="p-4 space-y-2 overflow-y-auto max-h-[300px] pr-3">
         {news.length === 0 ? (
           <div className="text-zinc-500 text-xs italic py-4">No recent signals logged for this asset model.</div>
         ) : (
@@ -63,7 +60,6 @@ export default function NewsTimeline({ news, selectedNewsId, onSelectNewsId }: N
                       : 'border-zinc-800/80 bg-zinc-950/20 hover:border-zinc-700/80 hover:bg-zinc-950/60'
                 }`}
               >
-                {/* Trigger row */}
                 <button
                   type="button"
                   onClick={() => toggleExpand(item.id)}
@@ -94,17 +90,15 @@ export default function NewsTimeline({ news, selectedNewsId, onSelectNewsId }: N
                   </div>
                 </button>
 
-                {/* Collapsible Content */}
                 {isExpanded && (
                   <div className="px-4.5 pb-4 pt-2 border-t border-zinc-800/50 font-sans text-xs space-y-3.5 bg-black/25 rounded-b-lg">
-                    {/* Diagnostic Bullets replaces raw news summary */}
                     <div className="space-y-2.5">
-                      <span className="text-[9px] text-[#10B981] tracking-wider font-bold uppercase flex items-center space-x-1.5">
+                      <span className="text-[9px] text-[#10B981] tracking-wider font-bold uppercase flex items-center space-x-1.5 px-4 pt-2">
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>AI TL&DR & Impact on Share Value:</span>
                       </span>
                       
-                      <ul className="space-y-2 pl-1">
+                      <ul className="space-y-2 pl-5 pr-4 pb-2">
                         {item.bullets.map((bullet, bIdx) => (
                           <li key={bIdx} className="flex items-start space-x-2 text-zinc-300">
                             <span className="text-[#10B981] font-mono text-[9px] mt-0.5">▸</span>
@@ -114,8 +108,7 @@ export default function NewsTimeline({ news, selectedNewsId, onSelectNewsId }: N
                       </ul>
                     </div>
 
-                    {/* Meta actions */}
-                    <div className="flex items-center justify-between text-[8.5px] font-mono text-zinc-500 uppercase pt-2 border-t border-zinc-800/30">
+                    <div className="flex items-center justify-between text-[8.5px] font-mono text-zinc-500 uppercase pt-2 border-t border-zinc-800/30 px-4">
                       <span>SECURE RECORD: {item.id}</span>
                       <a href="#" onClick={(e) => e.preventDefault()} className="hover:text-[#10B981] inline-flex items-center space-x-1 transition-colors">
                         <Link2 className="w-3 h-3" />
@@ -128,7 +121,7 @@ export default function NewsTimeline({ news, selectedNewsId, onSelectNewsId }: N
             );
           })
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
