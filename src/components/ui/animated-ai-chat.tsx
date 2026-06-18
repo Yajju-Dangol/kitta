@@ -623,19 +623,21 @@ export function AnimatedAIChat() {
                                 <span>Send</span>
                             </motion.button>
                         </div>
+
+                        <AnimatePresence>
+                            {!selectedSymbol && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -5 }}
+                                    className="absolute -bottom-8 left-0 right-0 text-center text-xs text-amber-500/70 flex items-center justify-center gap-2"
+                                >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500/70 animate-pulse" />
+                                    Please select a Stock Symbol from the Trading Desk to begin analysis.
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </motion.div>
-
-                    {!selectedSymbol && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-center text-xs text-amber-500/70 pt-2 flex items-center justify-center gap-2"
-                        >
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500/70 animate-pulse" />
-                            Please select a Stock Symbol from the Trading Desk to begin analysis.
-                        </motion.div>
-                    )}
-
                 </motion.div>
             </div>
 
