@@ -53,7 +53,7 @@ def fetch_chart_data(symbol: str, resolution: str = "1D", start_date: str = "202
         
         if data.get('s') != 'ok':
             print(f"API status not OK for {symbol}: {data.get('s')}")
-            return _generate_synthetic_data(symbol)
+            return _fallback_fetch_from_nepse(symbol)
             
         df = pd.DataFrame({
             'Timestamp': data['t'],
@@ -69,34 +69,41 @@ def fetch_chart_data(symbol: str, resolution: str = "1D", start_date: str = "202
         return df
     except Exception as e:
         print(f"Error fetching data for {symbol}: {e}")
-        return _generate_synthetic_data(symbol)
+        return _fallback_fetch_from_nepse(symbol)
 
-def _generate_synthetic_data(symbol: str) -> pd.DataFrame:
-    """Fallback generator to create realistic synthetic data if scraping is blocked."""
-    print(f"Falling back to synthetic data for {symbol}")
-    import numpy as np
-    
-    np.random.seed(sum(ord(c) for c in symbol))
-    days = 200
-    dates = pd.date_range(end=datetime.now(), periods=days, freq='B')
-    
-    base_price = 500.0 if symbol != "NABIL" else 1240.0
-    returns = np.random.normal(0.001, 0.02, days)
-    price_series = base_price * np.exp(np.cumsum(returns))
-    
-    df = pd.DataFrame({
-        'Date': dates,
-        'Close': price_series,
-        'Open': price_series * np.random.normal(1, 0.005, days),
-        'High': price_series * np.random.normal(1.01, 0.005, days),
-        'Low': price_series * np.random.normal(0.99, 0.005, days),
-        'Volume': np.random.randint(10000, 500000, days)
-    })
-    
-    # Ensure High is highest and Low is lowest
-    df['High'] = df[['Open', 'Close', 'High']].max(axis=1)
-    df['Low'] = df[['Open', 'Close', 'Low']].min(axis=1)
-    return df
+def _fallback_fetch_from_nepse(symbol: str) -> pd.DataFrame:
+    """Fallback generator to fetch real data from NEPSE API if NepseAlpha is blocked."""
+    print(f"Falling back to NEPSE official API for {symbol}")
+    try:
+        from nepse_scraper import NepseScraper
+        from datetime import datetime, timedelta
+        
+        scraper = NepseScraper(verify_ssl=False)
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        
+        data = scraper.get_ticker_price_history(symbol, start_date, end_date, size=500)
+        content = data.get('content', [])
+        
+        if not content:
+            raise ValueError(f"No content in NEPSE fallback for {symbol}")
+            
+        df = pd.DataFrame([{
+            'Date': item['businessDate'],
+            'Open': item['openPrice'],
+            'High': item['highPrice'],
+            'Low': item['lowPrice'],
+            'Close': item['closePrice'],
+            'Volume': item['totalTradedQuantity']
+        } for item in content])
+        
+        df['Date'] = pd.to_datetime(df['Date'])
+        df = df.sort_values('Date').reset_index(drop=True)
+        return df
+    except Exception as fallback_e:
+        print(f"Fallback to NEPSE failed for {symbol}: {fallback_e}")
+        # Return empty dataframe instead of fake data so the system errors gracefully
+        return pd.DataFrame()
 
 def generate_technical_chart(symbol: str, static_dir: str = None) -> dict:
     """

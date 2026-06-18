@@ -26,16 +26,20 @@ def run_analysis_workflow(symbol: str, prompt: str) -> dict:
     runner = Runner(agent=analyst_agent, app_name=app_name, session_service=session_service)
     
     from app.agents.tools import free_web_search
-    import requests
+    from app.services.cache_service import get_or_fetch_stock_data
+    import json
+    
     news_data = free_web_search(symbol)
     try:
-        res = requests.get(f"http://localhost:8002/api/quant/{symbol}", timeout=10)
-        quant_data = res.json() if res.status_code == 200 else "Unavailable"
-        if isinstance(quant_data, dict):
-            quant_data.pop("historical_prices", None)
-            quant_data = json.dumps(quant_data, indent=2)
-    except:
-        quant_data = "Error fetching quant data"
+        cached = get_or_fetch_stock_data(symbol)
+        quant_dict = json.loads(cached.get("quant_metrics", "{}"))
+        if isinstance(quant_dict, dict):
+            quant_dict.pop("historical_prices", None)
+            quant_data = json.dumps(quant_dict, indent=2)
+        else:
+            quant_data = "Unavailable"
+    except Exception as e:
+        quant_data = f"Error fetching quant data: {e}"
     
     full_prompt = f"""Target Stock Symbol: {symbol}
 User Query: "{prompt}"
@@ -171,12 +175,12 @@ CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst
             # Concurrently fetch news and quant metrics
             async def fetch_quant():
                 try:
-                    res = await asyncio.to_thread(requests.get, f"http://localhost:8002/api/quant/{symbol}", timeout=10)
-                    if res.status_code == 200:
-                        data = res.json()
-                        data.pop("historical_prices", None) # Remove massive array
-                        return json.dumps(data, indent=2)
-                    return "Quant data not available."
+                    from app.services.cache_service import get_or_fetch_stock_data
+                    import json
+                    cached = await asyncio.to_thread(get_or_fetch_stock_data, symbol)
+                    quant_dict = json.loads(cached.get("quant_metrics", "{}"))
+                    quant_dict.pop("historical_prices", None) # Remove massive array
+                    return json.dumps(quant_dict, indent=2)
                 except Exception as e:
                     return f"Quant error: {str(e)}"
                     

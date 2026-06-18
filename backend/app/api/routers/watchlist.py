@@ -169,33 +169,9 @@ async def auto_scrape_watchlists(background_tasks: BackgroundTasks):
                 
                 print(f"[CRON] Scraping data for {sym}...")
                 try:
-                    # 1. Chart
-                    chart_res = generate_technical_chart(sym, static_dir="app/static")
-                    chart_url = chart_res.get("supabase_url", "")
-                    
-                    # 2. News
-                    news_data = free_web_search(sym)
-                    
-                    # 3. Quant
-                    try:
-                        res = requests.get(f"http://localhost:8002/api/quant/{sym}", timeout=10)
-                        if res.status_code == 200:
-                            data = res.json()
-                            data.pop("historical_prices", None)
-                            quant_data = json.dumps(data)
-                        else:
-                            quant_data = "{}"
-                    except Exception as e:
-                        quant_data = "{}"
-                        
-                    # Insert into Cache
-                    supabase_db.table("stock_cache").upsert({
-                        "symbol": sym,
-                        "latest_price": chart_res.get("latest_close", 0),
-                        "quant_metrics": quant_data,
-                        "news_summary": news_data,
-                        "chart_storage_path": chart_url
-                    }).execute()
+                    from app.services.cache_service import get_or_fetch_stock_data
+                    # get_or_fetch_stock_data already handles charting, quant, and news, and upserts to the DB!
+                    get_or_fetch_stock_data(sym, force_refresh=True)
                     
                     print(f"[CRON] Successfully updated {sym}")
                 except Exception as e:

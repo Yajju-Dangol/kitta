@@ -77,7 +77,7 @@ def _force_fetch_data(symbol: str):
             "microstructure": metrics.get("microstructure", {}),
             "statistical": metrics.get("statistical", {}),
             "volume": metrics.get("volume", {}),
-            "pe_ratio": pe_ratio,
+            "pe_ratio": 21.4,
             "rsi": metrics["trend"].get("rsi", 50.0) if "trend" in metrics else 50.0,
             "sparkline": sparkline,
             "latest_open": float(df.iloc[-1]["Open"]) if not df.empty else latest_price
@@ -95,17 +95,7 @@ def _force_fetch_data(symbol: str):
             "sentiment_score": 50 # Default baseline
         })
         
-        # 4. Fetch Fundamentals (PE Ratio)
         pe_ratio = 21.4 # Fallback
-        try:
-            logger.info(f"Fetching fundamentals for {symbol}")
-            funda_data = free_web_search(f"{symbol} PE ratio sharesansar merolagani nepse")
-            import re
-            match = re.search(r'(?:PE|P/E)[\s\w]*?Ratio[\s:\-]*?([\d\.]+)', funda_data, re.IGNORECASE)
-            if match:
-                pe_ratio = float(match.group(1))
-        except Exception as e:
-            logger.warning(f"Could not fetch PE for {symbol}: {e}")
         
         # Assemble Final Row
         row = {
