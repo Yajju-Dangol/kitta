@@ -1,10 +1,14 @@
 import os
+from pathlib import Path
+import matplotlib
+matplotlib.use('Agg')
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load .env from parent directory (kitta root)
+env_path = Path(__file__).parent.parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 from app.api.routers import history, nepse, ai_agent, quant, market
 

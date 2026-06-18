@@ -47,7 +47,7 @@ def fetch_chart_data(symbol: str, resolution: str = "1D", start_date: str = "202
     }
     
     try:
-        response = scraper.get(url, params=params, headers=headers)
+        response = scraper.get(url, params=params, headers=headers, timeout=15)
         response.raise_for_status() 
         data = response.json()
         
@@ -122,38 +122,45 @@ def generate_technical_chart(symbol: str, static_dir: str = None) -> dict:
         df = pd.read_csv(csv_path)
     else:
         df = fetch_chart_data(symbol)
+        if not df.empty:
+            df.to_csv(csv_path, index=False)
         
-        if df.empty:
-            return {"status": "error", "message": f"No data retrieved for symbol {symbol}"}
-            
-        # Calculate indicators
-        df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
-        df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
+    if df.empty:
+        return {"status": "error", "message": f"No data retrieved for symbol {symbol}"}
         
-        # RSI
-        delta = df['Close'].diff()
-        gain = delta.clip(lower=0)
-        loss = -delta.clip(upper=0)
-        ema_gain = gain.ewm(com=13, adjust=False).mean()
-        ema_loss = loss.ewm(com=13, adjust=False).mean()
-        rs = ema_gain / ema_loss
-        df['RSI'] = 100 - (100 / (1 + rs))
-        
-        # MACD
-        df['EMA12'] = df['Close'].ewm(span=12, adjust=False).mean()
-        df['EMA26'] = df['Close'].ewm(span=26, adjust=False).mean()
-        df['MACD'] = df['EMA12'] - df['EMA26']
-        df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
-        df['MACD_Hist'] = df['MACD'] - df['MACD_Signal']
-        
-        # Bollinger Bands
-        df['BB_Middle'] = df['Close'].rolling(window=20).mean()
-        df['BB_Std'] = df['Close'].rolling(window=20).std()
-        df['BB_Upper'] = df['BB_Middle'] + (df['BB_Std'] * 2)
-        df['BB_Lower'] = df['BB_Middle'] - (df['BB_Std'] * 2)
-        
-        # Save processed dataframe back to CSV with indicators
-        df.to_csv(csv_path, index=False)
+    # Calculate indicators
+    df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
+    df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
+    
+    # RSI
+    delta = df['Close'].diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    ema_gain = gain.ewm(com=13, adjust=False).mean()
+    ema_loss = loss.ewm(com=13, adjust=False).mean()
+    rs = ema_gain / ema_loss
+    df['RSI'] = 100 - (100 / (1 + rs))
+    
+    # MACD
+    df['EMA12'] = df['Close'].ewm(span=12, adjust=False).mean()
+    df['EMA26'] = df['Close'].ewm(span=26, adjust=False).mean()
+    df['MACD'] = df['EMA12'] - df['EMA26']
+    df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+    df['MACD_Hist'] = df['MACD'] - df['MACD_Signal']
+    
+    # Bollinger Bands
+    df['BB_Middle'] = df['Close'].rolling(window=20).mean()
+    df['BB_Std'] = df['Close'].rolling(window=20).std()
+    df['BB_Upper'] = df['BB_Middle'] + (df['BB_Std'] * 2)
+    df['BB_Lower'] = df['BB_Middle'] - (df['BB_Std'] * 2)
+    
+    # Wavelet Transform (db4 smoothed close)
+    df['Wavelet_Smooth'] = (
+        df['Close'] * 0.483 +
+        df['Close'].shift(1) * 0.837 +
+        df['Close'].shift(2) * 0.224 +
+        df['Close'].shift(3) * -0.129
+    ) / 1.415
     
     # Plotting window
     chart_df = df.tail(150).copy().reset_index(drop=True)
@@ -185,6 +192,7 @@ def generate_technical_chart(symbol: str, static_dir: str = None) -> dict:
     ax0.plot(x, chart_df['Close'], label='Close Price', color='#60A5FA', linewidth=1.8)
     ax0.plot(x, chart_df['EMA20'], label='20 EMA', color='#F59E0B', linestyle='--', linewidth=1.2)
     ax0.plot(x, chart_df['EMA50'], label='50 EMA', color='#EC4899', linestyle='--', linewidth=1.2)
+    ax0.plot(x, chart_df['Wavelet_Smooth'], label='Wavelet Trend (db4)', color='#C084FC', linewidth=2.5, zorder=4)
     
     if 'BB_Upper' in chart_df.columns:
         ax0.plot(x, chart_df['BB_Upper'], color='#3B82F6', alpha=0.3, label='Bollinger Upper')
@@ -238,7 +246,7 @@ def generate_technical_chart(symbol: str, static_dir: str = None) -> dict:
     # Format X Axis
     label_step = max(1, len(chart_df) // 8)
     ax3.set_xticks(x[::label_step])
-    ax3.set_xticklabels([d.strftime('%Y-%m-%d') for d in dates[::label_step]], rotation=25, ha='right')
+    ax3.set_xticklabels([str(d)[:10] for d in dates[::label_step]], rotation=25, ha='right')
     ax3.set_xlabel("Date", color='#A1A1AA')
     
     plt.tight_layout()

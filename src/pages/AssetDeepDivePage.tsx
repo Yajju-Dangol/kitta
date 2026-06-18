@@ -203,10 +203,10 @@ export default function AssetDeepDivePage({
               <CardHeader className="pb-2 border-b border-zinc-800/50">
                 <CardTitle className="flex items-center space-x-2 text-xs font-bold uppercase text-zinc-400">
                   <Percent className="w-4 h-4 text-pink-500" />
-                  <span>Statistical Time-Series (Log Returns)</span>
+                  <span>Statistical & Complexity Metrics</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4 grid grid-cols-4 gap-4">
+              <CardContent className="pt-4 grid grid-cols-3 md:grid-cols-6 gap-4">
                 <div>
                   <span className="text-[10px] text-zinc-500 block uppercase">Z-Score (20D)</span>
                   <span className={`text-lg font-bold block ${quantData.statistical.z_score > 2 ? 'text-red-500' : quantData.statistical.z_score < -2 ? 'text-[#10B981]' : 'text-zinc-200'}`}>
@@ -222,8 +222,20 @@ export default function AssetDeepDivePage({
                   <span className="text-lg font-bold text-zinc-200 block">{quantData.statistical.kurtosis.toFixed(3)}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-zinc-500 block uppercase">Daily Log Return</span>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Log Return</span>
                   <span className="text-lg font-bold text-zinc-200 block">{(quantData.statistical.log_return_daily * 100).toFixed(2)}%</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Fractal D</span>
+                  <span className={`text-lg font-bold block ${quantData.statistical.fractal_dimension < 1.3 ? 'text-[#10B981]' : quantData.statistical.fractal_dimension > 1.6 ? 'text-red-500' : 'text-orange-400'}`}>
+                    {quantData.statistical.fractal_dimension ? quantData.statistical.fractal_dimension.toFixed(3) : 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Hurst Exp</span>
+                  <span className={`text-lg font-bold block ${quantData.statistical.hurst_exponent > 0.6 ? 'text-[#10B981]' : quantData.statistical.hurst_exponent < 0.4 ? 'text-red-500' : 'text-zinc-200'}`}>
+                    {quantData.statistical.hurst_exponent ? quantData.statistical.hurst_exponent.toFixed(3) : 'N/A'}
+                  </span>
                 </div>
               </CardContent>
             </Card>

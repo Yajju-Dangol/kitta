@@ -50,6 +50,28 @@ def compute_advanced_metrics(df: pd.DataFrame) -> Dict[str, Any]:
     calc_df['Skewness'] = calc_df['Log_Return'].rolling(window=20).skew()
     calc_df['Kurtosis'] = calc_df['Log_Return'].rolling(window=20).kurt()
     
+    # Fractal Dimension
+    n_period = 20
+    diff_abs = calc_df['Close'].diff().abs()
+    L = diff_abs.rolling(window=n_period).sum()
+    R_fractal = (calc_df['Close'] - calc_df['Close'].shift(n_period)).abs()
+    # Avoid log(0)
+    L = L.replace(0, np.nan)
+    R_fractal = R_fractal.replace(0, np.nan)
+    calc_df['Fractal_Dimension'] = 1 + (np.log(L) - np.log(R_fractal)) / np.log(n_period)
+
+    # Hurst Exponent (R/S Analysis)
+    def calc_hurst(x):
+        if len(x) < n_period: return np.nan
+        mean_val = np.mean(x)
+        cum_dev = np.cumsum(x - mean_val)
+        R = np.max(cum_dev) - np.min(cum_dev)
+        S = np.std(x)
+        if S == 0 or R == 0: return 0.5
+        return np.log(R/S) / np.log(n_period)
+
+    calc_df['Hurst_Exponent'] = calc_df['Close'].rolling(window=n_period).apply(calc_hurst, raw=True)
+    
     # 5. Volume Dynamics (VWAP)
     cum_vol = calc_df['Volume'].cumsum()
     cum_vol_price = (calc_df['Close'] * calc_df['Volume']).cumsum()
@@ -86,7 +108,9 @@ def compute_advanced_metrics(df: pd.DataFrame) -> Dict[str, Any]:
             "z_score": safe_float(latest['Z_Score']),
             "skewness": safe_float(latest['Skewness']),
             "kurtosis": safe_float(latest['Kurtosis']),
-            "log_return_daily": safe_float(latest['Log_Return'])
+            "log_return_daily": safe_float(latest['Log_Return']),
+            "fractal_dimension": safe_float(latest['Fractal_Dimension']),
+            "hurst_exponent": safe_float(latest['Hurst_Exponent'])
         },
         "volume": {
             "vwap": safe_float(latest['VWAP']),

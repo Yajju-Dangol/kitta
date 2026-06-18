@@ -1,15 +1,15 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 import os
 
 from app.models.requests import InterrogateRequest
-from app.agents import run_analysis_workflow
+from app.agents import run_analysis_workflow, stream_analysis_workflow
 from app.services.chart_engine import generate_technical_chart
 
 router = APIRouter(tags=["ai_agent"])
 
 @router.post("/api/interrogate")
-async def interrogate(payload: InterrogateRequest):
+def interrogate(payload: InterrogateRequest):
     try:
         symbol = payload.symbol.strip().upper()
         if not symbol:
@@ -31,6 +31,22 @@ async def interrogate(payload: InterrogateRequest):
         tb = traceback.format_exc()
         print(tb)
         raise HTTPException(status_code=500, detail=f"AI Agent system error: {str(e)}\nTraceback:\n{tb}")
+
+@router.post("/api/interrogate/stream")
+async def interrogate_stream(payload: InterrogateRequest):
+    symbol = payload.symbol.strip().upper()
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol cannot be empty.")
+    
+    return StreamingResponse(
+        stream_analysis_workflow(symbol=symbol, prompt=payload.prompt),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 @router.get("/api/chart/{symbol}")
 def get_chart(symbol: str):

@@ -81,3 +81,74 @@ def run_analysis_workflow(symbol: str, prompt: str) -> dict:
         "traces": traces,
         "symbol": symbol
     }
+
+import json
+
+async def stream_analysis_workflow(symbol: str, prompt: str):
+    """
+    Runs the multi-agent workflow for a given stock symbol and prompt,
+    yielding Server-Sent Events (SSE) for streaming to the UI.
+    """
+    try:
+        symbol = symbol.strip().upper()
+        app_name = "kitta_app"
+        user_id = "user_kitta"
+        import time
+        
+        session_id = f"session_{symbol}_{int(time.time())}"
+        session_service = InMemorySessionService()
+        session_service.create_session_sync(app_name=app_name, user_id=user_id, session_id=session_id)
+        runner = Runner(agent=analyst_agent, app_name=app_name, session_service=session_service)
+        
+        full_prompt = f"[Target Stock Symbol: {symbol}] {prompt}"
+        content = types.Content(role='user', parts=[types.Part(text=full_prompt)])
+        
+        # Notify start
+        yield f"data: {json.dumps({'type': 'start', 'symbol': symbol})}\n\n"
+        
+        from app.services.chart_engine import generate_technical_chart
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': '[System] Initializing chart generation engine...' + chr(10)})}\n\n"
+        
+        # Run synchronous chart generator in thread to avoid blocking asyncio loop
+        await asyncio.to_thread(generate_technical_chart, symbol, static_dir="app/static")
+        
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': '[System] Chart generated. Waking up Analyst Agent...' + chr(10)})}\n\n"
+        
+        async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=content):
+            author = getattr(event, 'author', 'system')
+            trace_text = f"[{author}] Processing node..."
+            
+            # Show all tool calls
+            if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts'):
+                for part in event.content.parts:
+                    if hasattr(part, 'function_call') and part.function_call:
+                        fn_name = part.function_call.name
+                        args_str = str(part.function_call.args)
+                        trace_text = f"[{author}] Calling tool: {fn_name}({args_str})"
+                        
+            yield f"data: {json.dumps({'type': 'reasoning', 'text': trace_text + chr(10)})}\n\n"
+            
+            # Stream text chunks or final responses
+            if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts'):
+                for part in event.content.parts:
+                    if hasattr(part, 'text') and part.text:
+                        if event.is_final_response() and author == "analyst_agent":
+                            yield f"data: {json.dumps({'type': 'content', 'text': part.text})}\n\n"
+                        else:
+                            yield f"data: {json.dumps({'type': 'reasoning', 'text': f'[{author}] {part.text[:200]}...' + chr(10)})}\n\n"
+                            
+            if getattr(event, 'error_message', None):
+                err_msg = getattr(event, 'error_message')
+                yield f"data: {json.dumps({'type': 'reasoning', 'text': f'[{author}] ERROR: {err_msg}' + chr(10)})}\n\n"
+                yield f"data: {json.dumps({'type': 'content', 'text': f'\n\n**Agent System Error:** `{err_msg}`\n\nThe intelligence backend encountered a critical error while computing the analysis. Please check your API keys and configuration.'})}\n\n"
+                        
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': '[Appraisal Engine] Finalized synthesis report.' + chr(10)})}\n\n"
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print(f"Error during agent stream: {tb}")
+        err_msg = f"\n\n**Agent System Error:** `{str(e)}`\n\nThe intelligence backend encountered a critical error while computing the analysis. Please check the backend logs."
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': '[Appraisal Engine] ERROR: Workflow crashed!' + chr(10)})}\n\n"
+        yield f"data: {json.dumps({'type': 'content', 'text': err_msg})}\n\n"
+        
+    yield f"data: {json.dumps({'type': 'done'})}\n\n"

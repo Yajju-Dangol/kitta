@@ -100,8 +100,8 @@ export default function MainTerminalPage({
       ]);
     }, 450);
 
-    // Call server API
-    fetch("/api/interrogate", {
+    // Call server API via stream
+    fetch("/api/interrogate/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -109,35 +109,71 @@ export default function MainTerminalPage({
         symbol: selectedSymbol
       })
     })
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data) => {
+        
         setIsLowLatencyIngesting(false);
-        setNarrativeText(data.analysis);
+        setNarrativeText("");
         
-        if (data.traces && data.traces.length > 0) {
-          setTraces(data.traces);
-        } else {
-          setTraces((prev) => [
-            ...prev,
-            {
-              id: "tr_fin",
-              text: "▸ [Success] Appraisal models computed. Fading matrix elements onto workspace.",
-              status: "success",
-              timestamp: new Date().toISOString()
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        if (reader) {
+          while (true) {
+            const { done, value: chunk } = await reader.read();
+            if (done) {
+              setIsStreaming(false);
+              break;
             }
-          ]);
+
+            buffer += decoder.decode(chunk, { stream: true });
+            const lines = buffer.split("\n\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const dataStr = line.slice(6).trim();
+                if (dataStr === "[DONE]") continue;
+
+                try {
+                  const data = JSON.parse(dataStr);
+                  
+                  if (data.type === "content") {
+                    setNarrativeText(prev => prev + data.text);
+                  } else if (data.type === "reasoning") {
+                    setTraces(prev => [
+                      ...prev,
+                      {
+                        id: `tr_${Date.now()}_${Math.random()}`,
+                        text: `▸ ${data.text.trim()}`,
+                        status: "info",
+                        timestamp: new Date().toISOString()
+                      }
+                    ]);
+                  } else if (data.type === "start") {
+                    if (data.symbol && data.symbol !== "NEPSE") {
+                      onSelectSymbol(data.symbol);
+                    }
+                  }
+                } catch (e) {
+                  console.error("Stream parse error:", e);
+                }
+              }
+            }
+          }
         }
         
-        if (data.chart_path) {
-           setChartPath(data.chart_path);
-        }
-        
-        if (data.symbol && data.symbol !== "NEPSE") {
-          onSelectSymbol(data.symbol);
-        }
+        // Finalize trace
+        setTraces((prev) => [
+          ...prev,
+          {
+            id: "tr_fin",
+            text: "▸ [Success] Appraisal models computed. Fading matrix elements onto workspace.",
+            status: "success",
+            timestamp: new Date().toISOString()
+          }
+        ]);
       })
       .catch(() => {
         setTimeout(() => {
@@ -145,21 +181,14 @@ export default function MainTerminalPage({
             ...prev,
             {
               id: "tr_err",
-              text: "▸ [Failure] API Gateway lookup failed. Standard offline models applied.",
+              text: "▸ [Failure] API Gateway lookup failed. Check backend connection.",
               status: "error",
               timestamp: new Date().toISOString()
             }
           ]);
           setIsLowLatencyIngesting(false);
-          setNarrativeText(`### Kitta Stock Appraisal Report: **${activeStock?.symbol}**
-
-Warning: The terminal is evaluating metrics inside sandboxed simulation offline models.
-
-- **Current Evaluation**: The stock index is priced at **NPR ${activeStock?.price}**.
-- **Metrics Analysis**: Current PE stands at **${activeStock?.pe}** versus macro banking index benchmarks of 18.5 points.
-
-We suggest reviewing comparative lists in the Watchlist Forge panel before executing secondary commits.
-`);
+          setIsStreaming(false);
+          setNarrativeText(`### Kitta Stock Appraisal Report: **${activeStock?.symbol}**\n\nWarning: Connection to the intelligence backend failed. Please ensure the server is running.`);
         }, 800);
       });
   };

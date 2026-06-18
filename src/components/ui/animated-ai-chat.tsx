@@ -139,6 +139,7 @@ Textarea.displayName = "Textarea"
 
 export function AnimatedAIChat() {
     const [value, setValue] = useState("");
+    const [selectedSymbol, setSelectedSymbol] = useState("");
     const [attachments, setAttachments] = useState<string[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -147,6 +148,16 @@ export function AnimatedAIChat() {
     const [recentCommand, setRecentCommand] = useState<string | null>(null);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [messages, setMessages] = useState<{ id: string; role: "user" | "assistant"; content: string; reasoning?: string }[]>([]);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, isTyping]);
+
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 60,
         maxHeight: 200,
@@ -262,27 +273,91 @@ export function AnimatedAIChat() {
         }
     };
 
-    const handleSendMessage = () => {
-        if (value.trim()) {
-            startTransition(() => {
-                const newMsg = { id: Date.now().toString(), role: "user" as const, content: value.trim() };
-                setMessages(prev => [...prev, newMsg]);
-                setIsTyping(true);
-                setValue("");
-                adjustHeight(true);
+    const handleSendMessage = async () => {
+        if (!value.trim() || !selectedSymbol) return;
 
-                // Temp mock response
-                setTimeout(() => {
-                    setIsTyping(false);
-                    const aiMsg = { 
-                        id: (Date.now() + 1).toString(), 
-                        role: "assistant" as const, 
-                        content: "Based on the technical patterns and institutional volume accumulation, the current setup suggests a potential breakout. However, you should wait for confirmation above the resistance level.",
-                        reasoning: "1. Analyzing historical OHLCV data for the requested ticker.\n2. Detected a descending triangle breakout pattern.\n3. RSI is currently at 58, showing bullish divergence.\n4. Volume profile indicates strong institutional buying in the last 3 sessions.\n5. Combining these metrics points to a high probability upside move."
-                    };
-                    setMessages(prev => [...prev, aiMsg]);
-                }, 3000);
+        const userMessage = value.trim();
+        const newMsgId = Date.now().toString();
+        const newMsg = { id: newMsgId, role: "user" as const, content: userMessage };
+
+        startTransition(() => {
+            setMessages(prev => [...prev, newMsg]);
+            setValue("");
+            adjustHeight(true);
+            setIsTyping(true);
+        });
+
+        try {
+            const symbol = selectedSymbol.toUpperCase();
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const response = await fetch("http://127.0.0.1:8002/api/interrogate/stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbol: symbol, prompt: userMessage }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error("Failed to connect to the intelligence backend");
+            }
+
+            const aiMsgId = (Date.now() + 1).toString();
+            setMessages(prev => [...prev, { id: aiMsgId, role: "assistant", content: "", reasoning: "" }]);
+            setIsTyping(false);
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+
+            if (reader) {
+                while (true) {
+                    const { done, value: chunk } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(chunk, { stream: true });
+                    const lines = buffer.split("\n\n");
+                    buffer = lines.pop() || ""; // Keep the last incomplete chunk
+
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const dataStr = line.slice(6).trim();
+                            if (dataStr === "[DONE]") continue;
+                            
+                            try {
+                                const data = JSON.parse(dataStr);
+                                
+                                setMessages(prev => prev.map(msg => {
+                                    if (msg.id === aiMsgId) {
+                                        if (data.type === "reasoning") {
+                                            return { ...msg, reasoning: (msg.reasoning || "") + data.text };
+                                        } else if (data.type === "content") {
+                                            return { ...msg, content: (msg.content || "") + data.text };
+                                        }
+                                    }
+                                    return msg;
+                                }));
+                            } catch (e) {
+                                console.error("Error parsing JSON chunk:", e, dataStr);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Agent error:", error);
+            setIsTyping(false);
+            setMessages(prev => [
+                ...prev, 
+                { 
+                    id: Date.now().toString(), 
+                    role: "assistant", 
+                    content: "Sorry, I encountered an error connecting to the intelligence backend. Please ensure the backend is running and the internet connection is active." 
+                }
+            ]);
         }
     };
 
@@ -312,6 +387,22 @@ export function AnimatedAIChat() {
                 <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-[#34D399]/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
             </div>
             <div className="w-full max-w-2xl mx-auto relative">
+                <div className="absolute -top-16 left-0 right-0 flex justify-center z-20">
+                    <select
+                        value={selectedSymbol}
+                        onChange={(e) => setSelectedSymbol(e.target.value)}
+                        className="bg-zinc-900/80 text-sm border border-zinc-700/50 text-white/90 rounded-full px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#10B981]/50 backdrop-blur-md transition-all cursor-pointer"
+                    >
+                        <option value="" disabled>Select a Stock Symbol...</option>
+                        <option value="NEPSE">NEPSE (Index)</option>
+                        <option value="NABIL">NABIL (Nabil Bank)</option>
+                        <option value="PCBL">PCBL (Prime Commercial Bank)</option>
+                        <option value="BHL">BHL (Upper Balephi Hydropower)</option>
+                        <option value="GBIME">GBIME (Global IME Bank)</option>
+                        <option value="NICA">NICA (NIC Asia Bank)</option>
+                        <option value="NTC">NTC (Nepal Telecom)</option>
+                    </select>
+                </div>
                 <motion.div 
                     className="relative z-10 space-y-12"
                     initial={{ opacity: 0, y: 20 }}
@@ -348,8 +439,9 @@ export function AnimatedAIChat() {
                     )}
 
                     {messages.length > 0 && (
-                        <ChatContainerRoot className="max-h-[50vh] overflow-y-auto pr-2 mb-4 scrollbar-thin scrollbar-thumb-white/10">
-                            <ChatContainerContent className="space-y-6">
+                        <div className="h-[60vh] w-full overflow-y-auto pr-4 mb-4 scrollbar-thin scrollbar-thumb-white/10 flex flex-col">
+                            <div className="space-y-6 w-full flex flex-col min-h-full">
+                                <div className="flex-1" />
                                 {messages.map((msg) => (
                                     <Message key={msg.id} className={msg.role === "user" ? "flex-row-reverse" : ""}>
                                         <MessageAvatar 
@@ -360,12 +452,14 @@ export function AnimatedAIChat() {
                                         />
                                         <div className={cn("flex flex-col gap-2 max-w-[80%]", msg.role === "user" ? "items-end" : "items-start")}>
                                             {msg.reasoning && (
-                                                <Reasoning className="bg-zinc-900/50 border-zinc-800 text-zinc-400">
+                                                <Reasoning className="bg-zinc-900/80 border border-zinc-700/50 rounded-xl p-3 w-full mb-2">
                                                     <ReasoningTrigger>Chain of Thought</ReasoningTrigger>
-                                                    <ReasoningContent className="text-xs">{msg.reasoning}</ReasoningContent>
+                                                    <ReasoningContent markdown={true} className="text-xs mt-2 text-zinc-400 prose prose-invert max-w-none">
+                                                        {msg.reasoning}
+                                                    </ReasoningContent>
                                                 </Reasoning>
                                             )}
-                                            <MessageContent className={cn("!prose-invert", msg.role === "user" ? "bg-white/10 text-white rounded-2xl px-4 py-2" : "text-zinc-300 bg-transparent")}>
+                                            <MessageContent markdown={true} className={cn("!prose-invert prose prose-sm max-w-none", msg.role === "user" ? "bg-white/10 text-white rounded-2xl px-4 py-2" : "text-zinc-300 bg-transparent")}>
                                                 {msg.content}
                                             </MessageContent>
                                         </div>
@@ -382,9 +476,9 @@ export function AnimatedAIChat() {
                                         </div>
                                     </Message>
                                 )}
-                            </ChatContainerContent>
-                            <ChatContainerScrollAnchor />
-                        </ChatContainerRoot>
+                                <div ref={messagesEndRef} />
+                            </div>
+                        </div>
                     )}
 
                     <motion.div 
@@ -531,13 +625,13 @@ export function AnimatedAIChat() {
                                 onClick={handleSendMessage}
                                 whileHover={{ scale: 1.01 }}
                                 whileTap={{ scale: 0.98 }}
-                                disabled={isTyping || !value.trim()}
+                                disabled={isTyping || !value.trim() || !selectedSymbol}
                                 className={cn(
                                     "px-4 py-2 rounded-lg text-sm font-medium transition-all",
                                     "flex items-center gap-2",
-                                    value.trim()
+                                    value.trim() && selectedSymbol
                                         ? "bg-[#10B981] text-[#0A0A0B] shadow-lg shadow-[#10B981]/10"
-                                        : "bg-white/[0.05] text-white/40"
+                                        : "bg-white/[0.05] text-white/40 cursor-not-allowed"
                                 )}
                             >
                                 {isTyping ? (
