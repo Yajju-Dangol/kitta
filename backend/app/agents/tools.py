@@ -114,6 +114,7 @@ def search_stock_news(symbol: str) -> str:
 def run_chart_analysis(symbol: str) -> dict:
     """
     Triggers chart scrape and generates full technical chart layout (CSV + PNG visualization).
+    Uses the unified caching service to ensure 24-hour rule.
 
     Args:
         symbol (str): The stock ticker (e.g., NABIL, NICA, NEPSE).
@@ -121,6 +122,28 @@ def run_chart_analysis(symbol: str) -> dict:
     Returns:
         dict: A dictionary containing the path to the generated chart and key technical metrics.
     """
-    symbol = symbol.strip().upper()
-    static_dir = "static/charts"
-    return generate_technical_chart(symbol, static_dir=static_dir)
+    from app.services.cache_service import get_or_fetch_stock_data
+    import json
+    
+    try:
+        row = get_or_fetch_stock_data(symbol)
+        
+        q_data = row.get("quant_metrics")
+        if isinstance(q_data, str):
+            try:
+                q_data = json.loads(q_data)
+            except:
+                q_data = {}
+                
+        return {
+            "status": "success",
+            "source": "unified_cache",
+            "supabase_url": row.get("chart_storage_path"),
+            "latest_close": q_data.get("latest_open", row.get("latest_price")),
+        }
+    except Exception as e:
+        print(f"Chart analysis via cache failed: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }

@@ -27,14 +27,18 @@ const transitionVariants = {
     },
 }
 
+import { Session } from '@supabase/supabase-js'
+import { signInWithGoogle, signOut } from '@/lib/supabase'
+
 interface HeroSectionProps {
   onEnterApp: () => void;
+  session?: Session | null;
 }
 
-export function HeroSection({ onEnterApp }: HeroSectionProps) {
+export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
     return (
         <>
-            <HeroHeader onEnterApp={onEnterApp} />
+            <HeroHeader onEnterApp={onEnterApp} session={session} />
             <main className="overflow-hidden bg-[#000000] text-zinc-300">
                 <section>
                     <div className="relative pt-32 pb-16">
@@ -155,7 +159,7 @@ const menuItems = [
     { name: 'Research', href: '#' },
 ]
 
-export const HeroHeader = ({ onEnterApp }: { onEnterApp: () => void }) => {
+export const HeroHeader = ({ onEnterApp, session }: { onEnterApp: () => void, session?: Session | null }) => {
     const [menuState, setMenuState] = React.useState(false)
     const [scrolled, setScrolled] = React.useState(false)
 
@@ -221,13 +225,23 @@ export const HeroHeader = ({ onEnterApp }: { onEnterApp: () => void }) => {
                                 </ul>
                             </div>
                             <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
-                                <Button
-                                    onClick={onEnterApp}
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white">
-                                    <span>Log In</span>
-                                </Button>
+                                {!session ? (
+                                    <Button
+                                        onClick={signInWithGoogle}
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white">
+                                        <span>Log In with Google</span>
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={signOut}
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white">
+                                        <span>Sign Out</span>
+                                    </Button>
+                                )}
                                 <Button
                                     onClick={onEnterApp}
                                     size="sm"

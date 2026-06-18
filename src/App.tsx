@@ -13,12 +13,29 @@ import WatchlistForgePage from "./pages/WatchlistForgePage";
 import MacroInsightsHubPage from "./pages/MacroInsightsHubPage";
 import LandingPage from "./pages/LandingPage";
 import { AnimatedAIChat } from "./components/ui/animated-ai-chat";
+import { supabase } from "./lib/supabase";
+import { Session } from "@supabase/supabase-js";
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'drilldown' | 'watchlist' | 'sandbox'>('landing');
   const [selectedSymbol, setSelectedSymbol] = useState<string>("NABIL");
   const [prefilledPrompt, setPrefilledPrompt] = useState<string | undefined>(undefined);
   const [dbLatency, setDbLatency] = useState(12);
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Core synchronized arrays
   const [stocks, setStocks] = useState<Stock[]>([
@@ -150,6 +167,11 @@ export default function App() {
     setCurrentView('dashboard');
   };
 
+  const handleNavigateToDrilldown = (symbol: string) => {
+    setSelectedSymbol(symbol);
+    setCurrentView('drilldown');
+  };
+
   // Render relevant structural page inside primary workspace viewport
   const renderViewContent = () => {
     switch (currentView) {
@@ -174,6 +196,7 @@ export default function App() {
             alerts={alerts}
             onTriggerInterrogation={handleTriggerInterrogation}
             onRefreshAlerts={fetchAlerts}
+            onNavigateToDrilldown={handleNavigateToDrilldown}
           />
         );
       case 'sandbox':
@@ -191,7 +214,7 @@ export default function App() {
 
   // Handle landing page bypass
   if (currentView === 'landing') {
-    return <LandingPage onEnterApp={() => setCurrentView('dashboard')} />;
+    return <LandingPage onEnterApp={() => setCurrentView('dashboard')} session={session} />;
   }
 
   return (
@@ -201,6 +224,7 @@ export default function App() {
         currentView={currentView} 
         onViewChange={setCurrentView} 
         dbLatency={dbLatency}
+        session={session}
       />
 
       <div className="flex-1 flex flex-col min-w-0">

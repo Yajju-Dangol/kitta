@@ -14,10 +14,14 @@ export interface Stock {
   sector: string;
   eps: number;
   pe: number;
+  rsi?: number;
   nav: number;
   divYield: number;
   sentiment: number; // 0 to 100 (bearish to bullish)
   sparkline: number[]; // Array of 10-15 data points for minimal chart rendering
+  aiTarget?: string;
+  aiRisk?: string;
+  relativeVolume?: string;
 }
 
 export interface NewsItem {

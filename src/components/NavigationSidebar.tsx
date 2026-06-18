@@ -28,10 +28,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { Session } from '@supabase/supabase-js';
+import { signInWithGoogle, signOut } from '@/lib/supabase';
+
 interface SidebarProps {
   currentView: 'dashboard' | 'drilldown' | 'watchlist' | 'sandbox';
   onViewChange: (view: 'dashboard' | 'drilldown' | 'watchlist' | 'sandbox') => void;
   dbLatency?: number;
+  session?: Session | null;
 }
 
 const sidebarVariants = {
@@ -78,8 +82,8 @@ const staggerVariants = {
   },
 };
 
-export default function NavigationSidebar({ currentView, onViewChange, dbLatency = 12 }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(true);
+export default function NavigationSidebar({ currentView, onViewChange, dbLatency = 24, session }: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', label: 'Stock Agent', icon: LayoutDashboard },
@@ -199,9 +203,13 @@ export default function NavigationSidebar({ currentView, onViewChange, dbLatency
                     <DropdownMenuTrigger className="w-full">
                       <div className="flex h-12 w-full flex-row items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-[#141417] hover:text-zinc-200">
                         <Avatar className="size-8 rounded-full border border-zinc-800 shrink-0">
-                          <AvatarFallback className="bg-zinc-900 text-zinc-400">
-                            <User className="h-4 w-4" />
-                          </AvatarFallback>
+                          {session?.user?.user_metadata?.avatar_url ? (
+                             <img src={session.user.user_metadata.avatar_url} alt="Avatar" className="rounded-full w-full h-full object-cover" />
+                          ) : (
+                             <AvatarFallback className="bg-zinc-900 text-zinc-400">
+                               <User className="h-4 w-4" />
+                             </AvatarFallback>
+                          )}
                         </Avatar>
                         <motion.li
                           variants={variants}
@@ -210,10 +218,12 @@ export default function NavigationSidebar({ currentView, onViewChange, dbLatency
                           {!isCollapsed && (
                             <>
                               <div className="flex flex-col text-left ml-1 min-w-0">
-                                <span className="text-xs font-semibold text-zinc-300 truncate">yajjudangol1@gmail.com</span>
+                                <span className="text-xs font-semibold text-zinc-300 truncate">
+                                  {session?.user?.email || "Guest User"}
+                                </span>
                                 <span className="text-[9px] text-[#10B981] uppercase tracking-widest font-mono flex items-center space-x-1">
                                   <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
-                                  <span className="truncate">Verified</span>
+                                  <span className="truncate">{session ? "Verified" : "Local"}</span>
                                 </span>
                               </div>
                               <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-zinc-600" />
@@ -223,9 +233,15 @@ export default function NavigationSidebar({ currentView, onViewChange, dbLatency
                       </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent sideOffset={5} className="bg-[#141417] border-[#202024] text-zinc-300">
-                      <DropdownMenuItem className="hover:bg-[#202024] focus:bg-[#202024] flex items-center gap-2">
-                         <LogOut className="h-4 w-4" /> Sign out
-                      </DropdownMenuItem>
+                      {session ? (
+                        <DropdownMenuItem onClick={signOut} className="hover:bg-[#202024] focus:bg-[#202024] flex items-center gap-2 cursor-pointer">
+                           <LogOut className="h-4 w-4" /> Sign out
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={signInWithGoogle} className="hover:bg-[#202024] focus:bg-[#202024] flex items-center gap-2 cursor-pointer">
+                           <UserCircle className="h-4 w-4" /> Sign In with Google
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

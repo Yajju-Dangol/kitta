@@ -2,47 +2,34 @@ import os
 import pandas as pd
 from fastapi import APIRouter, HTTPException
 from app.models.responses import QuantMetricsResponse
-from app.services.chart_engine import fetch_chart_data, _generate_synthetic_data
-from app.services.quant_engine import compute_advanced_metrics
-import time
+from app.services.cache_service import get_or_fetch_stock_data
+import json
 
 router = APIRouter(prefix="/api/quant", tags=["quant"])
 
 @router.get("/{symbol}", response_model=QuantMetricsResponse)
 def get_quant_metrics(symbol: str):
     symbol = symbol.strip().upper()
-    static_dir = os.path.join(os.getcwd(), "app", "static", "charts")
-    os.makedirs(static_dir, exist_ok=True)
-    csv_path = os.path.join(static_dir, f"{symbol}_historical_data.csv")
-    
-    # 1-day Cache Check
-    cache_valid = False
-    if os.path.exists(csv_path):
-        if time.time() - os.path.getmtime(csv_path) < 86400:
-            cache_valid = True
-            
     try:
-        if cache_valid:
-            df = pd.read_csv(csv_path)
+        # Pull from the unified 24-hour cache
+        cached_row = get_or_fetch_stock_data(symbol)
+        
+        # Parse the JSON string from the database
+        q_data_str = cached_row.get("quant_metrics")
+        if isinstance(q_data_str, str):
+            metrics = json.loads(q_data_str)
         else:
-            df = fetch_chart_data(symbol)
-            if df.empty:
-                raise HTTPException(status_code=404, detail="No data available")
-            df.to_csv(csv_path, index=False)
-            
-        metrics = compute_advanced_metrics(df)
-        if "error" in metrics:
-            raise HTTPException(status_code=400, detail=metrics["error"])
-            
+            metrics = q_data_str
+
         return QuantMetricsResponse(
             symbol=symbol,
             status="success",
-            trend=metrics["trend"],
-            historical_prices=metrics["historical_prices"],
-            volatility=metrics["volatility"],
-            microstructure=metrics["microstructure"],
-            statistical=metrics["statistical"],
-            volume=metrics["volume"]
+            trend=metrics.get("trend", {}),
+            historical_prices=metrics.get("historical_prices", []),
+            volatility=metrics.get("volatility", {}),
+            microstructure=metrics.get("microstructure", {}),
+            statistical=metrics.get("statistical", {}),
+            volume=metrics.get("volume", {})
         )
     except HTTPException:
         raise

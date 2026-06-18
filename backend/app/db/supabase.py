@@ -2,7 +2,10 @@ import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-load_dotenv()
+from pathlib import Path
+
+env_path = Path(__file__).parent.parent.parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # Setup these environment variables in your backend .env file:
 # SUPABASE_URL=your_project_url

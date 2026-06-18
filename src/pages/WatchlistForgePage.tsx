@@ -3,29 +3,74 @@ import { Stock, AlertRule } from "../types";
 import DrawerSlideOver from "../components/DrawerSlideOver";
 import { AnimatedAIChat } from "../components/ui/animated-ai-chat";
 import { FinancialTable } from "../components/ui/financial-markets-table";
-import { X } from "lucide-react";
+import { X, Loader2, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useEffect } from "react";
 
 interface WatchlistForgePageProps {
   stocks: Stock[];
   alerts: AlertRule[];
   onTriggerInterrogation: (symbol: string) => void;
   onRefreshAlerts: () => void;
+  onNavigateToDrilldown: (symbol: string) => void;
 }
 
 export default function WatchlistForgePage({
   stocks,
   alerts,
   onTriggerInterrogation,
-  onRefreshAlerts
+  onRefreshAlerts,
+  onNavigateToDrilldown
 }: WatchlistForgePageProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidecarOpen, setSidecarOpen] = useState(false);
   const [targetSymbol, setTargetSymbol] = useState("NABIL");
+  const [watchlistStocks, setWatchlistStocks] = useState<Stock[]>(stocks);
+  const [loading, setLoading] = useState(false);
+  const [newSymbol, setNewSymbol] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const fetchWatchlist = () => {
+    setLoading(true);
+    fetch("http://localhost:8002/api/watchlist/")
+      .then(res => res.json())
+      .then(data => {
+        if (data.stocks) {
+          setWatchlistStocks(data.stocks);
+        }
+      })
+      .catch(err => console.error("Failed to fetch watchlist", err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchWatchlist();
+  }, []);
 
   const handleAskAI = (symbol: string) => {
     setTargetSymbol(symbol);
     setSidecarOpen(true);
+  };
+
+  const handleStockSelect = (symbol: string) => {
+    onNavigateToDrilldown(symbol);
+  };
+
+  const handleAddStock = () => {
+    if (!newSymbol.trim()) return;
+    setAdding(true);
+    fetch("http://localhost:8002/api/watchlist/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol: newSymbol.toUpperCase() })
+    })
+      .then(res => res.json())
+      .then(() => {
+        setNewSymbol("");
+        fetchWatchlist();
+      })
+      .catch(err => console.error("Failed to add stock", err))
+      .finally(() => setAdding(false));
   };
 
   const handleCommitParameters = (symbol: string, rule: { metric: 'PE' | 'Price' | 'DivYield'; operator: '<' | '>'; value: number }) => {
@@ -47,13 +92,40 @@ export default function WatchlistForgePage({
 
   return (
     <div className="flex-1 flex flex-col p-4.5 space-y-4 overflow-y-auto w-full max-w-full">
+      {/* Controls */}
+      <div className="flex items-center gap-2 mb-2">
+        <input
+          type="text"
+          value={newSymbol}
+          onChange={(e) => setNewSymbol(e.target.value)}
+          placeholder="Enter Stock Code (e.g., NABIL)"
+          className="bg-[#09090B] border border-zinc-800 text-zinc-200 text-sm rounded-md px-3 py-2 w-64 focus:outline-none focus:border-[#10B981] uppercase"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleAddStock();
+          }}
+        />
+        <button
+          onClick={handleAddStock}
+          disabled={adding || !newSymbol.trim()}
+          className="flex items-center justify-center bg-[#10B981]/10 text-[#10B981] hover:bg-[#10B981]/20 border border-[#10B981]/30 p-2 rounded-md transition-colors disabled:opacity-50"
+        >
+          {adding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+        </button>
+      </div>
+
       {/* High-Performance Animated Watchlist Matrix */}
-      <FinancialTable 
-        title="NEPSE Active Watchlist"
-        stocks={stocks}
-        onStockSelect={handleAskAI}
-        className="mt-2"
-      />
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#10B981]" />
+        </div>
+      ) : (
+        <FinancialTable 
+          title="NEPSE Active Watchlist"
+          stocks={watchlistStocks}
+          onStockSelect={handleStockSelect}
+          className="mt-0"
+        />
+      )}
 
       {/* Flyout rules creation drawer */}
       <DrawerSlideOver

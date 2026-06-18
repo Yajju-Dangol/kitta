@@ -254,6 +254,20 @@ def generate_technical_chart(symbol: str, static_dir: str = None) -> dict:
     plt.savefig(chart_path, dpi=180, facecolor='#09090B')
     plt.close()
     
+    supabase_url = None
+    try:
+        from app.db.supabase import supabase_db
+        if supabase_db:
+            with open(chart_path, 'rb') as f:
+                res = supabase_db.storage.from_("scraped_charts").upload(
+                    path=f"{symbol}_chart.png",
+                    file=f,
+                    file_options={"content-type": "image/png", "upsert": "true"}
+                )
+            supabase_url = supabase_db.storage.from_("scraped_charts").get_public_url(f"{symbol}_chart.png")
+    except Exception as e:
+        print(f"Failed to upload chart to Supabase: {e}")
+    
     # Compute basic stats for agent reference
     latest = df.iloc[-1]
     prev = df.iloc[-2] if len(df) > 1 else latest
@@ -264,6 +278,7 @@ def generate_technical_chart(symbol: str, static_dir: str = None) -> dict:
         "status": "success",
         "csv_path": csv_path,
         "chart_path": chart_path,
+        "supabase_url": supabase_url,
         "latest_close": latest['Close'],
         "price_change": price_change,
         "price_change_pct": price_change_pct,

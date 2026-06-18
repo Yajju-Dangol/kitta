@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS public.stock_cache (
     company_name TEXT,
     latest_price NUMERIC,
     quant_metrics JSONB,          -- Stores Dashboard Metrics
+    pe_ratio NUMERIC,             -- Extracted P/E Ratio
+    rsi NUMERIC,                  -- Extracted 14-day RSI
+    sparkline JSONB,              -- Stores 30-day close price array
     news_summary JSONB,           -- Stores Real-time News
     chart_storage_path TEXT,      -- References 'scraped_charts' bucket
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

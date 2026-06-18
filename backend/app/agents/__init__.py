@@ -134,37 +134,72 @@ CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst
         
         yield f"data: {json.dumps({'type': 'start', 'symbol': symbol})}\n\n"
         
-        from app.services.chart_engine import generate_technical_chart
-        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System is initializing chart generation engine...' + chr(10)})}\n\n"
+        from app.db.supabase import supabase_db
         
-        # Run synchronous chart generator in thread to avoid blocking asyncio loop
-        await asyncio.to_thread(generate_technical_chart, symbol, static_dir="app/static")
-        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System successfully generated the technical chart.' + chr(10)})}\n\n"
-        
-        # Manually invoke news gathering to bypass LLM tool limitations
-        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'News Agent is scanning the live web for real-time data...' + chr(10)})}\n\n"
-        
-        from app.agents.tools import free_web_search
-        import requests
-        
-        # Concurrently fetch news and quant metrics
-        async def fetch_quant():
+        # 1. Check Supabase Cache First
+        cached_data = None
+        if supabase_db:
             try:
-                res = await asyncio.to_thread(requests.get, f"http://localhost:8002/api/quant/{symbol}", timeout=10)
-                if res.status_code == 200:
-                    data = res.json()
-                    data.pop("historical_prices", None) # Remove massive array
-                    return json.dumps(data, indent=2)
-                return "Quant data not available."
+                response = supabase_db.table("stock_cache").select("*").eq("symbol", symbol).execute()
+                if response.data and len(response.data) > 0:
+                    row = response.data[0]
+                    # Since expires_at is enforced by pg_cron, if it exists, it's valid
+                    cached_data = row
             except Exception as e:
-                return f"Quant error: {str(e)}"
+                print(f"Cache check failed: {e}")
                 
-        news_data, quant_data = await asyncio.gather(
-            asyncio.to_thread(free_web_search, symbol),
-            fetch_quant()
-        )
-        
-        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'News Agent successfully compiled all recent web news and quantitative metrics.' + chr(10)})}\n\n"
+        if cached_data:
+            yield f"data: {json.dumps({'type': 'reasoning', 'text': 'Fetching generated data and charts from the 24-hour global cache...' + chr(10)})}\n\n"
+            news_data = cached_data.get("news_summary", "No news cached.")
+            quant_data = cached_data.get("quant_metrics", "No quant metrics cached.")
+            # We don't need to generate the chart; it's already generated.
+        else:
+            from app.services.chart_engine import generate_technical_chart
+            yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System is initializing chart generation engine...' + chr(10)})}\n\n"
+            
+            # Run synchronous chart generator in thread to avoid blocking asyncio loop
+            chart_res = await asyncio.to_thread(generate_technical_chart, symbol, static_dir="app/static")
+            chart_url = chart_res.get("supabase_url", "")
+            yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System successfully generated the technical chart.' + chr(10)})}\n\n"
+            
+            # Manually invoke news gathering to bypass LLM tool limitations
+            yield f"data: {json.dumps({'type': 'reasoning', 'text': 'News Agent is scanning the live web for real-time data...' + chr(10)})}\n\n"
+            
+            from app.agents.tools import free_web_search
+            import requests
+            
+            # Concurrently fetch news and quant metrics
+            async def fetch_quant():
+                try:
+                    res = await asyncio.to_thread(requests.get, f"http://localhost:8002/api/quant/{symbol}", timeout=10)
+                    if res.status_code == 200:
+                        data = res.json()
+                        data.pop("historical_prices", None) # Remove massive array
+                        return json.dumps(data, indent=2)
+                    return "Quant data not available."
+                except Exception as e:
+                    return f"Quant error: {str(e)}"
+                    
+            news_data, quant_data = await asyncio.gather(
+                asyncio.to_thread(free_web_search, symbol),
+                fetch_quant()
+            )
+            
+            yield f"data: {json.dumps({'type': 'reasoning', 'text': 'News Agent successfully compiled all recent web news and quantitative metrics.' + chr(10)})}\n\n"
+            
+            # Insert into Supabase Cache
+            if supabase_db:
+                try:
+                    supabase_db.table("stock_cache").upsert({
+                        "symbol": symbol,
+                        "company_name": "", # Could be extracted if needed
+                        "latest_price": chart_res.get("latest_close", 0),
+                        "quant_metrics": quant_data,
+                        "news_summary": news_data,
+                        "chart_storage_path": chart_url
+                    }).execute()
+                except Exception as e:
+                    print(f"Failed to insert into cache: {e}")
         yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System is waking up the Master Analyst for synthesis...' + chr(10)})}\n\n"
         
         full_prompt = f"""Target Stock Symbol: {symbol}

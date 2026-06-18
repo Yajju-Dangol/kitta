@@ -27,6 +27,14 @@ def compute_advanced_metrics(df: pd.DataFrame) -> Dict[str, Any]:
     tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
     calc_df['ATR'] = tr.rolling(window=14).mean()
 
+    # RSI (14)
+    delta = calc_df['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rs = gain / loss
+    calc_df['RSI'] = 100 - (100 / (1 + rs))
+    calc_df['RSI'] = calc_df['RSI'].fillna(50)
+
     # 3. Market Microstructure
     body = np.abs(calc_df['Close'] - calc_df['Open'])
     total_range = calc_df['High'] - calc_df['Low']
@@ -90,7 +98,8 @@ def compute_advanced_metrics(df: pd.DataFrame) -> Dict[str, Any]:
     
     return {
         "trend": {
-            "hma20": safe_float(latest['HMA20']),
+            "hma20": float(calc_df['HMA20'].iloc[-1]) if not pd.isna(calc_df['HMA20'].iloc[-1]) else None,
+            "rsi": float(calc_df['RSI'].iloc[-1]) if not pd.isna(calc_df['RSI'].iloc[-1]) else 50.0,
             "current_price": safe_float(latest['Close']),
             "trend_status": "Bullish" if latest['Close'] > latest['HMA20'] else "Bearish"
         },

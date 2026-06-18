@@ -167,7 +167,7 @@ export function FinancialTable({
       scale: 1,
       filter: "blur(0px)",
       transition: {
-        type: "spring",
+        type: "spring" as any,
         stiffness: 400,
         damping: 25,
         mass: 0.7,
@@ -180,25 +180,25 @@ export function FinancialTable({
       {/* Table Container with horizontal scroll */}
       <div className="bg-[#09090b] border border-[#202024] rounded-2xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <div className="min-w-[1000px]">
-            {/* Table Headers */}
+          <div className="min-w-[1200px]">
             <div 
               className="px-8 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider bg-[#141417] border-b border-[#202024] text-left"
               style={{
                 display: 'grid',
-                gridTemplateColumns: '250px 100px minmax(60px, 1fr) minmax(60px, 1fr) minmax(60px, 1fr) minmax(60px, 1fr) minmax(80px, 1fr) minmax(80px, 1fr) minmax(100px, 1fr)',
-                columnGap: '6px'
+                gridTemplateColumns: 'minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(80px, 1fr) minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(80px, 1fr) minmax(80px, 1fr)',
+                columnGap: '16px'
               }}
             >
-              <div style={{ textAlign: 'left' }}>{title}</div>
-              <div style={{ textAlign: 'left' }}>AI Sentiment</div>
-              <div style={{ textAlign: 'left' }}>P/E Ratio</div>
-              <div style={{ textAlign: 'left' }}>Div yield</div>
-              <div style={{ textAlign: 'left' }}>EPS</div>
-              <div style={{ textAlign: 'left' }}>Volume</div>
-              <div style={{ textAlign: 'left' }}>10-day chart</div>
+              <div style={{ textAlign: 'left' }}>Asset & Trend</div>
               <div style={{ textAlign: 'left' }}>Price</div>
-              <div style={{ textAlign: 'left' }} className="pr-4">Daily performance</div>
+              <div style={{ textAlign: 'left' }}>Daily Change</div>
+              <div style={{ textAlign: 'left' }}>Open</div>
+              <div style={{ textAlign: 'left' }}>RSI (14)</div>
+              <div style={{ textAlign: 'left' }}>P/E</div>
+              <div style={{ textAlign: 'left' }}>AI Sentiment</div>
+              <div style={{ textAlign: 'left' }}>30 Day Chart</div>
+              <div style={{ textAlign: 'left' }}>Rel Vol</div>
+              <div style={{ textAlign: 'left' }}>AI Risk</div>
             </div>
 
             {/* Table Rows */}
@@ -222,88 +222,104 @@ export function FinancialTable({
                       } ${indexNum < stocks.length - 1 && selectedSymbol !== stock.symbol ? "border-b border-[#202024]/50" : ""}`}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '250px 100px minmax(60px, 1fr) minmax(60px, 1fr) minmax(60px, 1fr) minmax(60px, 1fr) minmax(80px, 1fr) minmax(80px, 1fr) minmax(120px, 1fr)',
-                        columnGap: '6px'
+                        gridTemplateColumns: 'minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(80px, 1fr) minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(80px, 1fr) minmax(80px, 1fr)',
+                        columnGap: '16px'
                       }}
                       onClick={() => handleStockSelect(stock.symbol)}
                     >
-                  {/* Market Info */}
+                  {/* 1. Asset & Trend */}
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full overflow-hidden border border-[#202024] flex items-center justify-center bg-zinc-900 shrink-0">
-                      <div className="w-full h-full flex items-center justify-center bg-white p-0.5">
-                        {getCountryFlag()}
+                    <div className="min-w-0 flex flex-col">
+                      <div className="font-semibold text-zinc-200 truncate flex items-center gap-2">
+                        {stock.symbol}
                       </div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-zinc-200 truncate">{stock.symbol} &bull; {stock.name}</div>
-                      <div className="text-xs text-zinc-500">{stock.sector}</div>
+                      <div className="text-[10px] text-zinc-500 truncate max-w-[120px]">{stock.name}</div>
                     </div>
                   </div>
 
-                  {/* AI Sentiment */}
+                  {/* 2. Price */}
                   <div className="flex items-center">
-                    {(() => {
-                      const { bgColor, borderColor, textColor } = getSentimentColor(stock.sentiment);
-                      return (
-                        <div className={`px-2 py-1 rounded-md text-xs font-bold border whitespace-nowrap ${bgColor} ${borderColor} ${textColor}`}>
-                          {stock.sentiment >= 50 ? "BULLISH" : "BEARISH"} {stock.sentiment}%
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* P/E Ratio */}
-                  <div className="flex items-center">
-                    <span className="font-semibold text-zinc-300">
-                      {stock.pe ? stock.pe.toFixed(1) : "N/A"}
-                    </span>
-                  </div>
-
-                  {/* Dividend Yield */}
-                  <div className="flex items-center">
-                    <span className="font-semibold text-orange-400">
-                      {formatPercentage(stock.divYield)}
-                    </span>
-                  </div>
-
-                  {/* EPS */}
-                  <div className="flex items-center">
-                    <span className="font-semibold text-zinc-300">
-                      NPR {stock.eps.toFixed(1)}
-                    </span>
-                  </div>
-
-                  {/* Volume */}
-                  <div className="flex items-center">
-                    <span className="font-semibold text-zinc-300">
-                      {stock.volume}
-                    </span>
-                  </div>
-
-                  {/* 10-day Chart */}
-                  <div className="flex items-center">
-                    <div className="px-2">
-                      {renderSparkline(stock.sparkline)}
-                    </div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex items-center">
-                    <span className="font-semibold text-zinc-200">
+                    <span className="font-bold text-zinc-100 font-mono text-sm tracking-tight">
                       {formatCurrency(stock.price)}
                     </span>
                   </div>
 
-                  {/* Daily Performance */}
-                  <div className="flex items-center gap-2 pr-4">
-                    <span className={`font-semibold ${getPerformanceColor(dailyChange).textColor}`}>
+                  {/* 3. Daily Change */}
+                  <div className="flex items-center gap-2">
+                    <span className={`font-mono font-medium text-xs ${getPerformanceColor(dailyChange).textColor}`}>
                       {dailyChange >= 0 ? "+" : ""}{dailyChange.toFixed(2)}
                     </span>
                     {(() => {
                       const { bgColor, borderColor, textColor } = getPerformanceColor(dailyChangePercent);
                       return (
-                        <div className={`px-2 py-1 rounded-md text-xs font-bold border ${bgColor} ${borderColor} ${textColor}`}>
+                        <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${bgColor} ${borderColor} ${textColor}`}>
                           {formatPercentage(dailyChangePercent)}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* 4. Open */}
+                  <div className="flex items-center">
+                    <span className="font-mono text-xs text-zinc-300">
+                      {stock.open ? stock.open.toFixed(2) : '-'}
+                    </span>
+                  </div>
+
+                  {/* 5. RSI */}
+                  <div className="flex items-center">
+                    <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded border ${
+                      !stock.rsi ? "text-zinc-500 border-zinc-800" :
+                      stock.rsi > 70 ? "text-red-400 border-red-500/30 bg-red-500/10" :
+                      stock.rsi < 30 ? "text-green-400 border-green-500/30 bg-green-500/10" :
+                      "text-zinc-300 border-zinc-600/50 bg-zinc-800/50"
+                    }`}>
+                      {stock.rsi ? stock.rsi.toFixed(1) : '-'}
+                    </span>
+                  </div>
+
+                  {/* 6. P/E */}
+                  <div className="flex items-center">
+                    <span className="font-mono text-xs text-zinc-300">
+                      {stock.pe ? stock.pe.toFixed(2) : '-'}
+                    </span>
+                  </div>
+
+                  {/* 7. AI Sentiment */}
+                  <div className="flex items-center">
+                    {(() => {
+                      const { bgColor, borderColor, textColor } = getSentimentColor(stock.sentiment);
+                      return (
+                        <div className={`px-2 py-1 rounded border text-[10px] font-bold tracking-widest ${bgColor} ${borderColor} ${textColor}`}>
+                          {stock.sentiment >= 50 ? "BULLISH" : "BEARISH"}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* 8. 30 Day Chart */}
+                  <div className="flex items-center">
+                    {renderSparkline(stock.sparkline)}
+                  </div>
+
+                  {/* 9. Relative Volume */}
+                  <div className="flex items-center">
+                    <span className="font-mono text-xs text-zinc-300">
+                      {stock.relativeVolume || "1.0x Avg"}
+                    </span>
+                  </div>
+
+                  {/* 10. AI Risk */}
+                  <div className="flex items-center">
+                    {(() => {
+                      const risk = stock.aiRisk || "Medium";
+                      let colorClass = "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
+                      if (risk.toLowerCase() === "low") colorClass = "text-green-500 bg-green-500/10 border-green-500/20";
+                      if (risk.toLowerCase() === "high") colorClass = "text-red-500 bg-red-500/10 border-red-500/20";
+                      
+                      return (
+                        <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${colorClass}`}>
+                          {risk}
                         </div>
                       );
                     })()}

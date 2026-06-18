@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
-from app.api.routers import history, nepse, ai_agent, quant, market
+from app.api.routers import history, nepse, ai_agent, quant, market, watchlist
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(ai_agent.router)
     app.include_router(quant.router)
     app.include_router(market.router)
+    app.include_router(watchlist.router)
 
     return app
 
