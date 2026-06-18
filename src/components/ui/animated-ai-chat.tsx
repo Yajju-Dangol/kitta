@@ -158,6 +158,15 @@ export function AnimatedAIChat() {
         scrollToBottom();
     }, [messages, isTyping]);
 
+    useEffect(() => {
+        const handleNewChat = () => {
+            setMessages([]);
+            setSelectedSymbol("");
+        };
+        window.addEventListener('new-chat', handleNewChat as EventListener);
+        return () => window.removeEventListener('new-chat', handleNewChat as EventListener);
+    }, []);
+
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 60,
         maxHeight: 200,
@@ -386,23 +395,7 @@ export function AnimatedAIChat() {
                 <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#059669]/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse delay-700" />
                 <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-[#34D399]/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
             </div>
-            <div className="w-full max-w-2xl mx-auto relative">
-                <div className="absolute -top-16 left-0 right-0 flex justify-center z-20">
-                    <select
-                        value={selectedSymbol}
-                        onChange={(e) => setSelectedSymbol(e.target.value)}
-                        className="bg-zinc-900/80 text-sm border border-zinc-700/50 text-white/90 rounded-full px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#10B981]/50 backdrop-blur-md transition-all cursor-pointer"
-                    >
-                        <option value="" disabled>Select a Stock Symbol...</option>
-                        <option value="NEPSE">NEPSE (Index)</option>
-                        <option value="NABIL">NABIL (Nabil Bank)</option>
-                        <option value="PCBL">PCBL (Prime Commercial Bank)</option>
-                        <option value="BHL">BHL (Upper Balephi Hydropower)</option>
-                        <option value="GBIME">GBIME (Global IME Bank)</option>
-                        <option value="NICA">NICA (NIC Asia Bank)</option>
-                        <option value="NTC">NTC (Nepal Telecom)</option>
-                    </select>
-                </div>
+            <div className="w-full max-w-4xl mx-auto relative flex flex-col">
                 <motion.div 
                     className="relative z-10 space-y-12"
                     initial={{ opacity: 0, y: 20 }}
@@ -452,14 +445,14 @@ export function AnimatedAIChat() {
                                         />
                                         <div className={cn("flex flex-col gap-2 max-w-[80%]", msg.role === "user" ? "items-end" : "items-start")}>
                                             {msg.reasoning && (
-                                                <Reasoning className="bg-zinc-900/80 border border-zinc-700/50 rounded-xl p-3 w-full mb-2">
+                                                <Reasoning className="rounded-xl p-3 w-full mb-2">
                                                     <ReasoningTrigger>Chain of Thought</ReasoningTrigger>
                                                     <ReasoningContent markdown={true} className="text-xs mt-2 text-zinc-400 prose prose-invert max-w-none">
                                                         {msg.reasoning}
                                                     </ReasoningContent>
                                                 </Reasoning>
                                             )}
-                                            <MessageContent markdown={true} className={cn("!prose-invert prose prose-sm max-w-none", msg.role === "user" ? "bg-white/10 text-white rounded-2xl px-4 py-2" : "text-zinc-300 bg-transparent")}>
+                                            <MessageContent markdown={true} className={cn("!prose-invert prose prose-sm max-w-none leading-relaxed prose-p:leading-relaxed prose-hr:my-8 prose-code:!bg-zinc-800 prose-code:!text-zinc-200 prose-code:!px-1.5 prose-code:!py-0.5 prose-code:!rounded-md prose-code:!font-medium prose-code:before:content-none prose-code:after:content-none", msg.role === "user" ? "bg-white/10 text-white rounded-2xl px-4 py-2" : "text-zinc-300 bg-transparent")}>
                                                 {msg.content}
                                             </MessageContent>
                                         </div>
@@ -599,25 +592,13 @@ export function AnimatedAIChat() {
                                         layoutId="button-highlight"
                                     />
                                 </motion.button>
-                                <motion.button
-                                    type="button"
-                                    data-command-button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowCommandPalette(prev => !prev);
-                                    }}
-                                    whileTap={{ scale: 0.94 }}
-                                    className={cn(
-                                        "p-2 text-white/40 hover:text-[#10B981]/90 rounded-lg transition-colors relative group",
-                                        showCommandPalette && "bg-white/10 text-white/90"
-                                    )}
-                                >
-                                    <Command className="w-4 h-4" />
-                                    <motion.span
-                                        className="absolute inset-0 bg-white/[0.05] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                                        layoutId="button-highlight"
-                                    />
-                                </motion.button>
+                                <input
+                                    type="text"
+                                    placeholder="Stock (e.g. NABIL)"
+                                    value={selectedSymbol}
+                                    onChange={(e) => setSelectedSymbol(e.target.value.toUpperCase())}
+                                    className="bg-white/[0.03] text-sm border border-white/[0.05] text-white/90 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#10B981]/50 backdrop-blur-md transition-all uppercase placeholder:normal-case w-40 h-8"
+                                />
                             </div>
                             
                             <motion.button
@@ -644,6 +625,16 @@ export function AnimatedAIChat() {
                         </div>
                     </motion.div>
 
+                    {!selectedSymbol && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-center text-xs text-amber-500/70 pt-2 flex items-center justify-center gap-2"
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500/70 animate-pulse" />
+                            Please select a Stock Symbol from the Trading Desk to begin analysis.
+                        </motion.div>
+                    )}
 
                 </motion.div>
             </div>

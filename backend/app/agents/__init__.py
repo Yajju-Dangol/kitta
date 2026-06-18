@@ -25,7 +25,33 @@ def run_analysis_workflow(symbol: str, prompt: str) -> dict:
     session_service.create_session_sync(app_name=app_name, user_id=user_id, session_id=session_id)
     runner = Runner(agent=analyst_agent, app_name=app_name, session_service=session_service)
     
-    full_prompt = f"[Target Stock Symbol: {symbol}] {prompt}"
+    from app.agents.tools import free_web_search
+    import requests
+    news_data = free_web_search(symbol)
+    try:
+        res = requests.get(f"http://localhost:8002/api/quant/{symbol}", timeout=10)
+        quant_data = res.json() if res.status_code == 200 else "Unavailable"
+        if isinstance(quant_data, dict):
+            quant_data.pop("historical_prices", None)
+            quant_data = json.dumps(quant_data, indent=2)
+    except:
+        quant_data = "Error fetching quant data"
+    
+    full_prompt = f"""Target Stock Symbol: {symbol}
+User Query: "{prompt}"
+
+CRITICAL INSTRUCTION: First, analyze the User Query. 
+1. If the query asks for stock analysis, trend, or details about the stock {symbol}, you MUST call the `chart_analyst_agent` tool to gather technical data, then provide a comprehensive appraisal synthesizing the chart data, REAL-TIME NEWS, and QUANT METRICS below.
+2. If the query is just conversational or a general question (e.g., "hi", "how are you"), just answer the query directly and naturally in a friendly tone without generating a stock report.
+
+--- LATEST NEWS DATA FOR {symbol} ---
+{news_data}
+------------------------
+
+--- QUANT METRICS (Dashboard Data) ---
+{quant_data}
+------------------------
+"""
     content = types.Content(role='user', parts=[types.Part(text=full_prompt)])
     
     # Run the ADK multi-agent workflow synchronously
@@ -100,31 +126,86 @@ async def stream_analysis_workflow(symbol: str, prompt: str):
         session_service.create_session_sync(app_name=app_name, user_id=user_id, session_id=session_id)
         runner = Runner(agent=analyst_agent, app_name=app_name, session_service=session_service)
         
-        full_prompt = f"[Target Stock Symbol: {symbol}] {prompt}"
+        full_prompt = f"""Target Stock Symbol: {symbol}
+User Query: "{prompt}"
+
+CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst` tool right now to gather data. After gathering data from BOTH tools, directly answer the User Query."""
         content = types.Content(role='user', parts=[types.Part(text=full_prompt)])
         
-        # Notify start
         yield f"data: {json.dumps({'type': 'start', 'symbol': symbol})}\n\n"
         
         from app.services.chart_engine import generate_technical_chart
-        yield f"data: {json.dumps({'type': 'reasoning', 'text': '[System] Initializing chart generation engine...' + chr(10)})}\n\n"
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System is initializing chart generation engine...' + chr(10)})}\n\n"
         
         # Run synchronous chart generator in thread to avoid blocking asyncio loop
         await asyncio.to_thread(generate_technical_chart, symbol, static_dir="app/static")
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System successfully generated the technical chart.' + chr(10)})}\n\n"
         
-        yield f"data: {json.dumps({'type': 'reasoning', 'text': '[System] Chart generated. Waking up Analyst Agent...' + chr(10)})}\n\n"
+        # Manually invoke news gathering to bypass LLM tool limitations
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'News Agent is scanning the live web for real-time data...' + chr(10)})}\n\n"
         
+        from app.agents.tools import free_web_search
+        import requests
+        
+        # Concurrently fetch news and quant metrics
+        async def fetch_quant():
+            try:
+                res = await asyncio.to_thread(requests.get, f"http://localhost:8002/api/quant/{symbol}", timeout=10)
+                if res.status_code == 200:
+                    data = res.json()
+                    data.pop("historical_prices", None) # Remove massive array
+                    return json.dumps(data, indent=2)
+                return "Quant data not available."
+            except Exception as e:
+                return f"Quant error: {str(e)}"
+                
+        news_data, quant_data = await asyncio.gather(
+            asyncio.to_thread(free_web_search, symbol),
+            fetch_quant()
+        )
+        
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'News Agent successfully compiled all recent web news and quantitative metrics.' + chr(10)})}\n\n"
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System is waking up the Master Analyst for synthesis...' + chr(10)})}\n\n"
+        
+        full_prompt = f"""Target Stock Symbol: {symbol}
+User Query: "{prompt}"
+
+CRITICAL INSTRUCTION: First, analyze the User Query. 
+1. If the query asks for stock analysis, trend, or details about the stock {symbol}, you MUST call the `chart_analyst_agent` tool to gather technical data, then provide a comprehensive appraisal synthesizing the chart data, REAL-TIME NEWS, and QUANT METRICS below.
+2. If the query is just conversational or a general question (e.g., "hi", "how are you"), just answer the query directly and naturally in a friendly tone without generating a stock report.
+
+--- LATEST NEWS DATA FOR {symbol} ---
+{news_data}
+------------------------
+
+--- QUANT METRICS (Dashboard Data) ---
+{quant_data}
+------------------------
+"""
+        content = types.Content(role='user', parts=[types.Part(text=full_prompt)])
+        
+        def clean_author(name):
+            if name == "news_agent": return "News Agent"
+            if name == "chart_analyst" or name == "chart_analyst_agent": return "Chart Analyst"
+            if name == "analyst_agent": return "Master Analyst"
+            return name.replace("_", " ").title()
+
         async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=content):
             author = getattr(event, 'author', 'system')
-            trace_text = f"[{author}] Processing node..."
+            clean_name = clean_author(author)
+            trace_text = f"{clean_name} is processing the data..."
             
             # Show all tool calls
             if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts'):
                 for part in event.content.parts:
                     if hasattr(part, 'function_call') and part.function_call:
                         fn_name = part.function_call.name
-                        args_str = str(part.function_call.args)
-                        trace_text = f"[{author}] Calling tool: {fn_name}({args_str})"
+                        if "chart" in fn_name:
+                            trace_text = f"{clean_name} is running technical analysis on the chart..."
+                        elif "news" in fn_name or "search" in fn_name:
+                            trace_text = f"{clean_name} is fetching latest market sentiment..."
+                        else:
+                            trace_text = f"{clean_name} is using a specialized tool..."
                         
             yield f"data: {json.dumps({'type': 'reasoning', 'text': trace_text + chr(10)})}\n\n"
             
@@ -135,14 +216,14 @@ async def stream_analysis_workflow(symbol: str, prompt: str):
                         if event.is_final_response() and author == "analyst_agent":
                             yield f"data: {json.dumps({'type': 'content', 'text': part.text})}\n\n"
                         else:
-                            yield f"data: {json.dumps({'type': 'reasoning', 'text': f'[{author}] {part.text[:200]}...' + chr(10)})}\n\n"
+                            yield f"data: {json.dumps({'type': 'reasoning', 'text': f'{clean_name} is synthesizing insights...' + chr(10)})}\n\n"
                             
             if getattr(event, 'error_message', None):
                 err_msg = getattr(event, 'error_message')
-                yield f"data: {json.dumps({'type': 'reasoning', 'text': f'[{author}] ERROR: {err_msg}' + chr(10)})}\n\n"
+                yield f"data: {json.dumps({'type': 'reasoning', 'text': f'{clean_name} encountered an error: {err_msg}' + chr(10)})}\n\n"
                 yield f"data: {json.dumps({'type': 'content', 'text': f'\n\n**Agent System Error:** `{err_msg}`\n\nThe intelligence backend encountered a critical error while computing the analysis. Please check your API keys and configuration.'})}\n\n"
                         
-        yield f"data: {json.dumps({'type': 'reasoning', 'text': '[Appraisal Engine] Finalized synthesis report.' + chr(10)})}\n\n"
+        yield f"data: {json.dumps({'type': 'reasoning', 'text': 'Appraisal Engine finalized the synthesis report.' + chr(10)})}\n\n"
     except Exception as e:
         import traceback
         tb = traceback.format_exc()

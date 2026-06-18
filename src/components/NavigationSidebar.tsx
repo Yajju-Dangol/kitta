@@ -153,6 +153,19 @@ export default function NavigationSidebar({ currentView, onViewChange, dbLatency
               <div className="flex grow flex-col gap-4">
                 <ScrollArea className="h-16 grow p-2">
                   <div className={cn("flex w-full flex-col gap-1")}>
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('new-chat'))}
+                      className={cn(
+                        "flex h-10 w-full flex-row items-center rounded-md transition-all mb-4",
+                        "bg-[#10B981]/10 text-[#10B981] hover:bg-[#10B981]/20 border border-[#10B981]/20",
+                        isCollapsed ? "justify-center px-0" : "px-2.5 justify-start"
+                      )}
+                    >
+                      <Plus className="h-[18px] w-[18px] shrink-0" />
+                      <motion.li variants={variants} className={cn("list-none", isCollapsed ? "hidden" : "flex-1")}>
+                        <p className="ml-3 text-sm font-medium text-left">New Chat</p>
+                      </motion.li>
+                    </button>
                     {menuItems.map((item) => {
                       const Icon = item.icon;
                       const isActive = currentView === item.id;
@@ -161,17 +174,16 @@ export default function NavigationSidebar({ currentView, onViewChange, dbLatency
                           key={item.id}
                           onClick={() => onViewChange(item.id)}
                           className={cn(
-                            "flex h-10 w-full flex-row items-center rounded-md px-2.5 py-2 transition-all",
+                            "flex h-10 w-full flex-row items-center rounded-md transition-all",
                             isActive 
                               ? "bg-[#141417] text-[#10B981] border border-[#202024]" 
-                              : "text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-[#141417]/40"
+                              : "text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-[#141417]/40",
+                            isCollapsed ? "justify-center px-0" : "px-2.5 justify-start"
                           )}
                         >
                           <Icon className={cn("h-[18px] w-[18px] shrink-0", isActive ? "text-[#10B981]" : "")} />
-                          <motion.li variants={variants} className="flex-1">
-                            {!isCollapsed && (
-                              <p className="ml-3 text-sm font-medium text-left">{item.label}</p>
-                            )}
+                          <motion.li variants={variants} className={cn(isCollapsed ? "hidden" : "flex-1")}>
+                            <p className="ml-3 text-sm font-medium text-left">{item.label}</p>
                           </motion.li>
                         </button>
                       );

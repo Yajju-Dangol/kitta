@@ -26,15 +26,15 @@ export default function NarrativeOutput({ text, isStreaming, history = [], onSel
 
     let currentLength = 0;
     setDisplayedText("");
-    
+
     const words = text.split(" ");
     let wordIdx = 0;
-    
+
     const interval = setInterval(() => {
       if (wordIdx < words.length) {
         setDisplayedText((prev) => (prev ? prev + " " + words[wordIdx] : words[wordIdx]));
         wordIdx++;
-        
+
         if (containerRef.current) {
           containerRef.current.scrollTop = containerRef.current.scrollHeight;
         }
@@ -82,22 +82,22 @@ export default function NarrativeOutput({ text, isStreaming, history = [], onSel
 
           <div className="grid grid-cols-1 gap-3.5">
             {trendingInsights.map((insight, idx) => (
-              <div 
+              <div
                 key={idx}
                 onClick={() => onSelectHistory && onSelectHistory(insight.prompt)}
                 className="bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 p-4 rounded-xl hover:bg-zinc-800/50 transition-all cursor-pointer group shadow-sm flex flex-col space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-xs font-semibold text-zinc-400">
+                  <div className="flex items-center space-x-2 text-xs font-semibold bg-gray text-zinc-400">
                     {insight.icon}
                     <span>{insight.tag}</span>
                   </div>
                 </div>
-                
+
                 <h4 className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">
                   {insight.title}
                 </h4>
-                
+
                 <p className="text-zinc-450 text-[11px] leading-relaxed">
                   {insight.desc}
                 </p>
@@ -131,28 +131,49 @@ export default function NarrativeOutput({ text, isStreaming, history = [], onSel
           </h4>
         );
       }
+      const processInlineStyles = (text: string) => {
+        return text.split("**").map((boldChunk, bIdx) => {
+          if (bIdx % 2 === 1) {
+            return <strong key={`b-${bIdx}`} className="text-[#10B981] font-semibold">{boldChunk}</strong>;
+          }
+          return boldChunk.split("`").map((codeChunk, cIdx) => {
+            if (cIdx % 2 === 1) {
+              return <code key={`c-${bIdx}-${cIdx}`} className="bg-zinc-800 text-zinc-200 px-1.5 py-0.5 rounded-md font-mono text-[10px] mx-0.5">{codeChunk}</code>;
+            }
+            return codeChunk;
+          });
+        });
+      };
+
       if (line.trim().startsWith("* ") || line.trim().startsWith("- ")) {
         const textContent = line.replace(/^\s*[\*\-]\s+/, "");
-        const highlighted = textContent.split("**").map((chunk, cIdx) => 
-          cIdx % 2 === 1 ? <strong key={cIdx} className="text-[#10B981] font-semibold">{chunk}</strong> : chunk
-        );
         return (
           <div key={idx} className="flex items-start space-x-2 my-1.5 text-zinc-300 font-sans text-xs leading-normal pl-2">
             <span className="text-[#10B981] mt-1 text-[10px]">•</span>
-            <span>{highlighted}</span>
+            <span>{processInlineStyles(textContent)}</span>
           </div>
         );
       }
 
       if (line.trim() === "") return <div key={idx} className="h-2" />;
 
-      const boldProcessed = line.split("**").map((chunk, cIdx) => 
-        cIdx % 2 === 1 ? <strong key={cIdx} className="text-zinc-100 font-semibold">{chunk}</strong> : chunk
-      );
+      const processParaStyles = (text: string) => {
+        return text.split("**").map((boldChunk, bIdx) => {
+          if (bIdx % 2 === 1) {
+            return <strong key={`b-${bIdx}`} className="text-zinc-100 font-semibold">{boldChunk}</strong>;
+          }
+          return boldChunk.split("`").map((codeChunk, cIdx) => {
+            if (cIdx % 2 === 1) {
+              return <code key={`c-${bIdx}-${cIdx}`} className="bg-zinc-800 text-zinc-200 px-1.5 py-0.5 rounded-md font-mono text-[10px] mx-0.5">{codeChunk}</code>;
+            }
+            return codeChunk;
+          });
+        });
+      };
 
       return (
         <p key={idx} className="text-zinc-300 font-sans text-xs leading-relaxed my-2">
-          {boldProcessed}
+          {processParaStyles(line)}
         </p>
       );
     });

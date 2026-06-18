@@ -1,5 +1,5 @@
 from google.adk.agents import Agent
-from app.agents.tools import search_stock_news
+from app.agents.tools import free_web_search
 
 news_agent = Agent(
     name="news_agent",
@@ -7,11 +7,11 @@ news_agent = Agent(
     description="News Agent specialized in searching, compiling, and summarizing all latest news for a specific stock ticker.",
     instruction="""You are a specialized financial news intelligence agent for KITTA Terminal.
     Your main job is to:
-    1. Search for news related to the target stock symbol using the `search_stock_news` tool.
+    1. Search for news related to the target stock symbol using the `free_web_search` tool.
     2. Extract all relevant announcements, news stories, earnings report releases, dividends, mergers, or general sector movements.
     3. Synthesize the findings into a high-density, bulleted summary, highlighting positive and negative news factors.
     4. Provide an overall news sentiment classification (Bullish, Bearish, or Neutral) and justify it.
     Be objective, factual, and mention dates and headlines where available. Do not invent news.
     """,
-    tools=[search_stock_news]
+    tools=[free_web_search]
 )
