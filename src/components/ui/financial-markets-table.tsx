@@ -190,15 +190,15 @@ export function FinancialTable({
               }}
             >
               <div style={{ textAlign: 'left' }}>Asset & Trend</div>
-              <div style={{ textAlign: 'left' }}>Price</div>
-              <div style={{ textAlign: 'left' }}>Daily Change</div>
-              <div style={{ textAlign: 'left' }}>Open</div>
-              <div style={{ textAlign: 'left' }}>RSI (14)</div>
-              <div style={{ textAlign: 'left' }}>P/E</div>
-              <div style={{ textAlign: 'left' }}>AI Sentiment</div>
-              <div style={{ textAlign: 'left' }}>30 Day Chart</div>
-              <div style={{ textAlign: 'left' }}>Rel Vol</div>
-              <div style={{ textAlign: 'left' }}>AI Risk</div>
+              <div style={{ textAlign: 'right' }}>Price</div>
+              <div style={{ textAlign: 'right' }}>Daily Change</div>
+              <div style={{ textAlign: 'right' }}>Open</div>
+              <div style={{ textAlign: 'right' }}>RSI (14)</div>
+              <div style={{ textAlign: 'right' }}>P/E</div>
+              <div style={{ textAlign: 'center' }}>AI Sentiment</div>
+              <div style={{ textAlign: 'center' }}>30 Day Chart</div>
+              <div style={{ textAlign: 'right' }}>Rel Vol</div>
+              <div style={{ textAlign: 'center' }}>AI Risk</div>
             </div>
 
             {/* Table Rows */}
@@ -238,14 +238,14 @@ export function FinancialTable({
                   </div>
 
                   {/* 2. Price */}
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-end">
                     <span className="font-bold text-zinc-100 font-mono text-sm tracking-tight">
                       {formatCurrency(stock.price)}
                     </span>
                   </div>
 
                   {/* 3. Daily Change */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 justify-end">
                     <span className={`font-mono font-medium text-xs ${getPerformanceColor(dailyChange).textColor}`}>
                       {dailyChange >= 0 ? "+" : ""}{dailyChange.toFixed(2)}
                     </span>
@@ -260,14 +260,14 @@ export function FinancialTable({
                   </div>
 
                   {/* 4. Open */}
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-end">
                     <span className="font-mono text-xs text-zinc-300">
                       {stock.open ? stock.open.toFixed(2) : '-'}
                     </span>
                   </div>
 
                   {/* 5. RSI */}
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-end">
                     <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded border ${
                       !stock.rsi ? "text-zinc-500 border-zinc-800" :
                       stock.rsi > 70 ? "text-red-400 border-red-500/30 bg-red-500/10" :
@@ -279,14 +279,14 @@ export function FinancialTable({
                   </div>
 
                   {/* 6. P/E */}
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-end">
                     <span className="font-mono text-xs text-zinc-300">
                       {stock.pe ? stock.pe.toFixed(2) : '-'}
                     </span>
                   </div>
 
                   {/* 7. AI Sentiment */}
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-center">
                     {(() => {
                       const { bgColor, borderColor, textColor } = getSentimentColor(stock.sentiment);
                       return (
@@ -298,19 +298,19 @@ export function FinancialTable({
                   </div>
 
                   {/* 8. 30 Day Chart */}
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-center">
                     {renderSparkline(stock.sparkline)}
                   </div>
 
                   {/* 9. Relative Volume */}
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-end">
                     <span className="font-mono text-xs text-zinc-300">
                       {stock.relativeVolume || "1.0x Avg"}
                     </span>
                   </div>
 
                   {/* 10. AI Risk */}
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-center">
                     {(() => {
                       const risk = stock.aiRisk || "Medium";
                       let colorClass = "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";

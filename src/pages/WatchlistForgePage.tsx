@@ -93,7 +93,7 @@ export default function WatchlistForgePage({
   return (
     <div className="flex-1 flex flex-col p-4.5 space-y-4 overflow-y-auto w-full max-w-full">
       {/* Controls */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="w-full max-w-7xl mx-auto flex items-center gap-2 mb-2">
         <input
           type="text"
           value={newSymbol}
