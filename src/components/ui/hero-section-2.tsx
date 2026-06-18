@@ -66,14 +66,14 @@ export function HeroSection({ onEnterApp }: HeroSectionProps) {
                                         className="mt-8 max-w-2xl text-pretty text-lg text-zinc-400 mx-auto lg:mx-0 leading-relaxed">
                                         Kitta is the ultimate autonomous analyst for the Nepal Stock Exchange. We synthesize real-time market data, institutional flows, and macro trends into actionable intelligence.
                                     </p>
-                                    <div className="mt-12 flex items-center justify-center lg:justify-start gap-4">
+                                    <div className="mt-12 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                                         <div
                                             key={1}
                                             className="bg-[#10B981]/10 rounded-[14px] border border-[#10B981]/30 p-0.5">
                                             <Button
                                                 onClick={onEnterApp}
                                                 size="lg"
-                                                className="rounded-xl px-8 text-base bg-[#10B981] text-black hover:bg-[#10B981]/80 font-bold">
+                                                className="w-full sm:w-auto rounded-xl px-8 text-base bg-[#10B981] text-black hover:bg-[#10B981]/80 font-bold">
                                                 <span className="text-nowrap">Enter Terminal</span>
                                             </Button>
                                         </div>
@@ -81,7 +81,7 @@ export function HeroSection({ onEnterApp }: HeroSectionProps) {
                                             key={2}
                                             size="lg"
                                             variant="outline"
-                                            className="h-[48px] rounded-xl px-8 text-base border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-900 hover:text-white">
+                                            className="w-full sm:w-auto h-[48px] rounded-xl px-8 text-base border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-900 hover:text-white">
                                             <span className="text-nowrap">View Documentation</span>
                                         </Button>
                                     </div>
@@ -127,7 +127,7 @@ export function HeroSection({ onEnterApp }: HeroSectionProps) {
                         <div className="text-center mb-8 text-xs font-semibold tracking-widest uppercase text-zinc-600">
                           Data & Infrastructure Partners
                         </div>
-                        <div className="mx-auto grid max-w-2xl grid-cols-4 items-center justify-items-center gap-x-12 gap-y-8 opacity-60 grayscale transition-all duration-500 hover:grayscale-0 hover:opacity-100 sm:gap-x-16 sm:gap-y-14">
+                        <div className="mx-auto grid max-w-2xl grid-cols-2 md:grid-cols-4 items-center justify-items-center gap-x-12 gap-y-8 opacity-60 grayscale transition-all duration-500 hover:grayscale-0 hover:opacity-100 sm:gap-x-16 sm:gap-y-14">
                             <div className="flex font-mono text-xl font-bold items-center space-x-2 text-white">
                               <Activity className="w-6 h-6 text-[#10B981]" /> <span>NEPSE</span>
                             </div>
@@ -171,7 +171,7 @@ export const HeroHeader = ({ onEnterApp }: { onEnterApp: () => void }) => {
     return (
         <header>
             <nav
-                data-state={menuState && 'active'}
+                data-state={menuState ? 'active' : 'closed'}
                 className={cn('group fixed top-0 z-50 w-full border-b border-transparent transition-all duration-300', scrolled && 'bg-black/80 backdrop-blur-md border-zinc-800')}>
                 <div className="mx-auto max-w-6xl px-6 transition-all duration-300">
                     <div className="relative flex flex-wrap items-center justify-between gap-6 py-4 lg:gap-0">

@@ -15,14 +15,12 @@ interface TimeseriesChartProps {
   sparkline: number[];
   selectedEventId?: string | null;
   onSelectEventId?: (eventId: string | null) => void;
-  chartPath?: string;
 }
 
 export default function TimeseriesChart({ 
   symbol, 
   price, 
-  sparkline = [1200, 1220, 1195, 1230, 1225, 1215, 1230, 1235, 1240, 1245],
-  chartPath
+  sparkline = [1200, 1220, 1195, 1230, 1225, 1215, 1230, 1235, 1240, 1245]
 }: TimeseriesChartProps) {
   const [range, setRange] = useState<'1D' | '1W' | '1M' | '1Y'>('1D');
 
@@ -39,24 +37,52 @@ export default function TimeseriesChart({
 
     // Keep active price as the final point
     const pts = [...base];
-    pts[pts.length - 1] = price;
+    if (price > 0) {
+      pts[pts.length - 1] = price;
+    }
     
     // Convert to recharts format
-    return pts.map((pt, index) => ({
+    const data: any[] = pts.map((pt, index) => ({
       index,
-      price: pt
+      price: pt,
+      speculated: null
     }));
+
+    // Generate speculated trendline points into the future
+    const lastPrice = pts[pts.length - 1];
+    const firstPrice = pts[0];
+    const trend = (lastPrice - firstPrice) / pts.length;
+    
+    // Connect the last actual point to the first speculated point
+    data[data.length - 1].speculated = lastPrice;
+
+    for (let i = 1; i <= Math.min(10, Math.floor(pts.length / 2)); i++) {
+      data.push({
+        index: data.length,
+        price: null,
+        speculated: lastPrice + (trend * i * 2) + (Math.sin(i) * (lastPrice * 0.005))
+      });
+    }
+
+    return data;
   };
 
   const chartData = getChartData();
-  const minVal = Math.min(...chartData.map(d => d.price)) * 0.995;
-  const maxVal = Math.max(...chartData.map(d => d.price)) * 1.005;
+  const allPrices = chartData.map(d => d.price).filter(p => p !== null)
+    .concat(chartData.map(d => d.speculated).filter(p => p !== null));
+    
+  const minVal = Math.min(...allPrices) * 0.99;
+  const maxVal = Math.max(...allPrices) * 1.01;
 
   const chartConfig = {
     price: {
       label: "Price",
       color: "#10B981",
     },
+    speculated: {
+      label: "Speculated",
+      color: "#8B5CF6",
+    }
   } satisfies ChartConfig;
 
   return (
@@ -93,11 +119,6 @@ export default function TimeseriesChart({
         </div>
 
         <div className="h-[200px] w-full px-2 mt-4">
-          {chartPath ? (
-            <div className="w-full h-full flex items-center justify-center p-4">
-               <img src={chartPath} alt="Generated Chart" className="max-h-full max-w-full rounded border border-zinc-800" />
-            </div>
-          ) : (
             <ChartContainer config={chartConfig} className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
@@ -115,10 +136,18 @@ export default function TimeseriesChart({
                     dot={false}
                     activeDot={{ r: 4, fill: "#10B981", stroke: "#000000", strokeWidth: 1 }}
                   />
+                  <Line
+                    type="monotone"
+                    dataKey="speculated"
+                    stroke="var(--color-speculated)"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    activeDot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </ChartContainer>
-          )}
         </div>
       </CardContent>
     </Card>

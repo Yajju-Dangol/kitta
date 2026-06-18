@@ -1,248 +1,236 @@
 import { useState, useEffect } from "react";
-import { Stock, NewsItem } from "../types";
-import TimeseriesChart from "../components/TimeseriesChart";
-import NewsTimeline from "../components/NewsTimeline";
-import SidecarAssistant from "../components/SidecarAssistant";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw, Search, TrendingUp, Activity, Maximize2, BarChart2, Hash, Percent } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import TimeseriesChart from "../components/TimeseriesChart";
 
 interface AssetDeepDivePageProps {
-  stocks: Stock[];
-  selectedSymbol: string;
+  stocks?: any[];
+  selectedSymbol?: string;
   onNavigateToCoreDeck: () => void;
 }
 
-interface DeepMetrics {
-  latest_rsi?: number;
-  latest_macd?: number;
-  latest_macd_signal?: number;
-  latest_ema20?: number;
-  latest_ema50?: number;
-  bb_upper?: number;
-  bb_lower?: number;
-}
-
 export default function AssetDeepDivePage({
-  stocks,
-  selectedSymbol,
+  selectedSymbol = "NEPSE",
   onNavigateToCoreDeck
 }: AssetDeepDivePageProps) {
-  const initialStock = stocks.find((s) => s.symbol === selectedSymbol) || stocks[0];
-  const [activeStock, setActiveStock] = useState<Stock>(initialStock);
-  const [deepMetrics, setDeepMetrics] = useState<DeepMetrics | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSymbol, setActiveSymbol] = useState(selectedSymbol);
   
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isMetricsLoading, setIsMetricsLoading] = useState(true);
-  
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [sidecarPrompt, setSidecarPrompt] = useState<string | undefined>(undefined);
-  const [chartPath, setChartPath] = useState<string | undefined>(undefined);
+  const [quantData, setQuantData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const stockObj = stocks.find((s) => s.symbol === selectedSymbol) || stocks[0];
-    setActiveStock(stockObj);
-    setIsMetricsLoading(true);
-    setDeepMetrics(null);
-    setChartPath(undefined);
+  const fetchQuantData = (symbol: string) => {
+    setIsLoading(true);
+    setError(null);
+    setQuantData(null);
     
-    fetch(`/api/metrics/${stockObj.symbol}`)
+    fetch(`/api/quant/${symbol}`)
       .then(res => {
-        if(res.ok) return res.json();
-        throw new Error();
+        if (!res.ok) throw new Error("Failed to fetch quant metrics");
+        return res.json();
       })
       .then(data => {
         if (data.status === "success") {
-          setActiveStock({
-            ...stockObj,
-            price: data.latest_close,
-            pe: data.latest_macd || stockObj.pe,
-          });
-          setDeepMetrics({
-            latest_rsi: data.latest_rsi,
-            latest_macd: data.latest_macd,
-            latest_macd_signal: data.latest_macd_signal,
-            latest_ema20: data.latest_ema20,
-            latest_ema50: data.latest_ema50,
-            bb_upper: data.bb_upper,
-            bb_lower: data.bb_lower,
-          });
-          setChartPath(data.chart_path);
+          setQuantData(data);
+          setActiveSymbol(symbol.toUpperCase());
+        } else {
+          setError(data.message || "Unknown error");
         }
       })
-      .catch(() => {
-        setActiveStock(stockObj);
+      .catch(err => {
+        setError("Symbol not found or data unavailable.");
       })
       .finally(() => {
-        setIsMetricsLoading(false);
+        setIsLoading(false);
       });
-
-    setSelectedEventId(null);
-    setSidecarPrompt(undefined);
-
-    fetch("/api/news")
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error();
-      })
-      .then((data) => {
-        const filtered = data.filter((n: NewsItem) => n.symbol === (stockObj?.symbol || "NABIL"));
-        setNews(filtered);
-      })
-      .catch(() => {});
-  }, [selectedSymbol, stocks]);
-
-  const handleRefreshData = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 600);
   };
 
-  const handleSelectEvent = (evtId: string | null) => {
-    setSelectedEventId(evtId);
-    if (!evtId) {
-      setSidecarPrompt(undefined);
-      return;
-    }
-    
-    if (evtId === "news_2") {
-      setSidecarPrompt("Analyze the yield impact of the recent NPR 35 dividend.");
-    } else if (evtId === "news_1") {
-      setSidecarPrompt("How does the 14% Q3 net profit growth affect NABIL's P/E?");
-    } else if (evtId === "news_3") {
-      setSidecarPrompt("Analyze the value impact of the FMO USD 25M credit line.");
-    } else if (evtId === "news_4") {
-      setSidecarPrompt("Evaluate grid integration impact of the 8.5 MW Piluwa testing.");
+  useEffect(() => {
+    fetchQuantData(activeSymbol);
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      fetchQuantData(searchInput.trim());
     }
   };
-
-  if (!activeStock) {
-    return <div className="p-5 text-zinc-500">Loading asset data...</div>;
-  }
-
-  const isUndervalued = activeStock.pe < 20.0;
 
   return (
     <div className="flex-1 flex flex-col p-5 space-y-4 overflow-y-auto font-sans bg-black">
-      {/* Return & Metadata Header Strip */}
-      <Card className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 rounded-xl">
+      {/* Header & Search Strip */}
+      <Card className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 rounded-xl border-zinc-800">
         <div className="flex items-center space-x-3.5">
-          <button
-            onClick={onNavigateToCoreDeck}
-            className="group font-sans text-xs font-semibold text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-900 px-3.5 py-1.5 rounded-lg flex items-center space-x-2 transition-all cursor-pointer whitespace-nowrap"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
-            <span>Back to Dashboard</span>
-          </button>
-          
-          <div className="h-4 w-px bg-zinc-800 hidden sm:block" />
-
           <div className="flex flex-col">
             <div className="flex items-center space-x-2">
-              <span className="font-mono text-sm font-bold text-zinc-100">{activeStock.symbol}</span>
-              <span className="text-zinc-500 font-medium text-xs">•</span>
-              <span className="text-zinc-300 text-xs font-medium">{activeStock.name}</span>
+              <span className="font-mono text-sm font-bold text-zinc-100">{activeSymbol}</span>
             </div>
-            <span className="text-[10px] text-zinc-500 tracking-wide font-medium uppercase mt-0.5">{activeStock.sector} Sector Analysis</span>
+            <span className="text-[10px] text-zinc-500 tracking-wide font-medium uppercase mt-0.5">Quantitative Analysis Dashboard</span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs">
+        <form onSubmit={handleSearch} className="flex items-center space-x-2 w-full sm:w-auto">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500" />
+            <input 
+              type="text" 
+              placeholder="Enter Stock Symbol (e.g. NICA)" 
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 pr-4 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 focus:outline-none focus:border-[#10B981] w-full sm:w-64 transition-colors uppercase"
+            />
+          </div>
           <button 
-            onClick={handleRefreshData}
-            className="p-2 rounded-lg bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer mr-2 flex items-center justify-center"
+            type="submit"
+            disabled={isLoading}
+            className="px-4 py-1.5 bg-[#10B981] hover:bg-[#10B981]/90 text-black text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isMetricsLoading ? 'animate-spin text-[#10B981]' : ''}`} />
+            Analyze
           </button>
-
-          {isUndervalued ? (
-            <div className="px-3 py-1 bg-emerald-950/30 border border-[#10B981]/40 text-[#10B981] rounded-full font-semibold text-[11px] uppercase tracking-wide">
-              Undervalued (PE {activeStock.pe?.toFixed(1) || 'N/A'})
-            </div>
-          ) : (
-            <div className="px-3 py-1 bg-red-950/30 border border-red-800/40 text-red-400 rounded-full font-semibold text-[11px] uppercase tracking-wide">
-              Premium (PE {activeStock.pe?.toFixed(1) || 'N/A'})
-            </div>
-          )}
-        </div>
+        </form>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 flex-1">
-        <div className="lg:col-span-6 flex flex-col space-y-4">
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center text-zinc-500 space-x-2">
+          <RefreshCw className="w-5 h-5 animate-spin text-[#10B981]" />
+          <span>Crunching institutional math models...</span>
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex items-center justify-center text-red-500">
+          {error}
+        </div>
+      ) : quantData ? (
+        <div className="flex flex-col space-y-4 flex-1">
+          {/* Main Visual Chart */}
           <TimeseriesChart 
-            symbol={activeStock.symbol} 
-            price={activeStock.price} 
-            sparkline={activeStock.sparkline}
-            selectedEventId={selectedEventId}
-            onSelectEventId={handleSelectEvent}
-            chartPath={chartPath}
+            symbol={activeSymbol} 
+            price={quantData.trend.current_price} 
+            sparkline={quantData.historical_prices || []}
           />
 
-          <Card className="flex flex-col space-y-4 rounded-xl">
-            <CardHeader className="border-b border-zinc-800/50 pb-3 flex flex-row justify-between items-center px-4 py-3">
-              <CardTitle className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Super Depth Data Analysis</CardTitle>
-              {isMetricsLoading && (
-                <span className="flex items-center space-x-1.5 text-zinc-500 text-[10px]">
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  <span>Scraping metrics...</span>
-                </span>
-              )}
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              {deepMetrics ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="bg-black p-3 rounded-lg border border-zinc-800/50">
-                    <span className="text-[10px] text-zinc-500 block">RSI</span>
-                    <span className="text-sm font-bold text-zinc-200 mt-1 block">{deepMetrics.latest_rsi?.toFixed(2) || 'N/A'}</span>
-                  </div>
-                  <div className="bg-black p-3 rounded-lg border border-zinc-800/50">
-                    <span className="text-[10px] text-zinc-500 block">MACD Line</span>
-                    <span className="text-sm font-bold text-zinc-200 mt-1 block">{deepMetrics.latest_macd?.toFixed(2) || 'N/A'}</span>
-                  </div>
-                  <div className="bg-black p-3 rounded-lg border border-zinc-800/50">
-                    <span className="text-[10px] text-zinc-500 block">MACD Signal</span>
-                    <span className="text-sm font-bold text-zinc-200 mt-1 block">{deepMetrics.latest_macd_signal?.toFixed(2) || 'N/A'}</span>
-                  </div>
-                  <div className="bg-black p-3 rounded-lg border border-zinc-800/50">
-                    <span className="text-[10px] text-zinc-500 block">EMA 20-Day</span>
-                    <span className="text-sm font-bold text-zinc-200 mt-1 block">NPR {deepMetrics.latest_ema20?.toFixed(2) || 'N/A'}</span>
-                  </div>
-                  <div className="bg-black p-3 rounded-lg border border-zinc-800/50">
-                    <span className="text-[10px] text-zinc-500 block">EMA 50-Day</span>
-                    <span className="text-sm font-bold text-zinc-200 mt-1 block">NPR {deepMetrics.latest_ema50?.toFixed(2) || 'N/A'}</span>
-                  </div>
-                  <div className="bg-black p-3 rounded-lg border border-zinc-800/50">
-                    <span className="text-[10px] text-zinc-500 block">Bollinger Bounds</span>
-                    <span className="text-sm font-bold text-zinc-200 mt-1 block">{deepMetrics.bb_upper?.toFixed(0)} / {deepMetrics.bb_lower?.toFixed(0)}</span>
-                  </div>
+          {/* Institutional Quantitative Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            
+            {/* Trend & Direction */}
+            <Card className="rounded-xl border-zinc-800 bg-zinc-950">
+              <CardHeader className="pb-2 border-b border-zinc-800/50">
+                <CardTitle className="flex items-center space-x-2 text-xs font-bold uppercase text-zinc-400">
+                  <TrendingUp className="w-4 h-4 text-blue-500" />
+                  <span>Trend & Direction</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">HMA (20-Day)</span>
+                  <span className="text-lg font-bold text-zinc-200 block">{quantData.trend.hma20.toFixed(2)}</span>
                 </div>
-              ) : (
-                !isMetricsLoading && (
-                  <div className="text-center py-4 text-xs text-zinc-500 italic">
-                    Deep metrics extraction failed or unavailable for this asset.
-                  </div>
-                )
-              )}
-            </CardContent>
-          </Card>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Trend Bias</span>
+                  <span className={`text-sm font-bold block mt-1 uppercase ${quantData.trend.trend_status === 'Bullish' ? 'text-[#10B981]' : 'text-red-500'}`}>
+                    {quantData.trend.trend_status}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
 
-          <NewsTimeline 
-            news={news} 
-            selectedNewsId={selectedEventId}
-            onSelectNewsId={handleSelectEvent}
-          />
-        </div>
+            {/* Volatility & Bands */}
+            <Card className="rounded-xl border-zinc-800 bg-zinc-950">
+              <CardHeader className="pb-2 border-b border-zinc-800/50">
+                <CardTitle className="flex items-center space-x-2 text-xs font-bold uppercase text-zinc-400">
+                  <Maximize2 className="w-4 h-4 text-purple-500" />
+                  <span>Volatility & Risk</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">ATR (14-Day)</span>
+                  <span className="text-lg font-bold text-zinc-200 block">{quantData.volatility.atr14.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Risk Profile</span>
+                  <span className="text-sm font-bold text-zinc-400 block mt-1">Normal</span>
+                </div>
+              </CardContent>
+            </Card>
 
-        <div className="lg:col-span-4 h-full min-h-[500px]">
-          <SidecarAssistant 
-            symbol={activeStock.symbol} 
-            price={activeStock.price} 
-            pe={activeStock.pe} 
-            triggerPrompt={sidecarPrompt}
-          />
+            {/* Volume Dynamics */}
+            <Card className="rounded-xl border-zinc-800 bg-zinc-950">
+              <CardHeader className="pb-2 border-b border-zinc-800/50">
+                <CardTitle className="flex items-center space-x-2 text-xs font-bold uppercase text-zinc-400">
+                  <BarChart2 className="w-4 h-4 text-emerald-500" />
+                  <span>Volume Dynamics</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">VWAP</span>
+                  <span className="text-lg font-bold text-zinc-200 block">{quantData.volume.vwap.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Latest Volume</span>
+                  <span className="text-lg font-bold text-zinc-200 block">{quantData.volume.volume_today.toLocaleString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Market Microstructure */}
+            <Card className="rounded-xl border-zinc-800 bg-zinc-950">
+              <CardHeader className="pb-2 border-b border-zinc-800/50">
+                <CardTitle className="flex items-center space-x-2 text-xs font-bold uppercase text-zinc-400">
+                  <Hash className="w-4 h-4 text-orange-500" />
+                  <span>Microstructure Math</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-3 gap-2">
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Body %</span>
+                  <span className="text-sm font-bold text-zinc-200 block">{(quantData.microstructure.body_ratio * 100).toFixed(1)}%</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Up Wick</span>
+                  <span className="text-sm font-bold text-zinc-200 block">{(quantData.microstructure.upper_wick_ratio * 100).toFixed(1)}%</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Dn Wick</span>
+                  <span className="text-sm font-bold text-zinc-200 block">{(quantData.microstructure.lower_wick_ratio * 100).toFixed(1)}%</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Advanced Statistical */}
+            <Card className="rounded-xl border-zinc-800 bg-zinc-950 md:col-span-2 xl:col-span-2">
+              <CardHeader className="pb-2 border-b border-zinc-800/50">
+                <CardTitle className="flex items-center space-x-2 text-xs font-bold uppercase text-zinc-400">
+                  <Percent className="w-4 h-4 text-pink-500" />
+                  <span>Statistical Time-Series (Log Returns)</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-4 gap-4">
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Z-Score (20D)</span>
+                  <span className={`text-lg font-bold block ${quantData.statistical.z_score > 2 ? 'text-red-500' : quantData.statistical.z_score < -2 ? 'text-[#10B981]' : 'text-zinc-200'}`}>
+                    {quantData.statistical.z_score.toFixed(2)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Skewness</span>
+                  <span className="text-lg font-bold text-zinc-200 block">{quantData.statistical.skewness.toFixed(3)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Kurtosis</span>
+                  <span className="text-lg font-bold text-zinc-200 block">{quantData.statistical.kurtosis.toFixed(3)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Daily Log Return</span>
+                  <span className="text-lg font-bold text-zinc-200 block">{(quantData.statistical.log_return_daily * 100).toFixed(2)}%</span>
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

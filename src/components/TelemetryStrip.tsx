@@ -21,13 +21,25 @@ export default function TelemetryStrip() {
   ]);
 
   useEffect(() => {
-    fetch("/api/tickers")
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error();
-      })
-      .then((data) => setTickers(data))
-      .catch(() => {});
+    const fetchTickers = () => {
+      fetch("/api/tickers")
+        .then((res) => {
+          if (res.ok) return res.json();
+          throw new Error();
+        })
+        .then((data) => {
+          // If the backend sends an empty array, stick to fallback data.
+          if (data && data.length > 0) {
+             setTickers(data);
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchTickers();
+    // Poll every 3 minutes (180000 ms)
+    const intervalId = setInterval(fetchTickers, 3 * 60 * 1000);
+    return () => clearInterval(intervalId);
   }, []);
 
   return (

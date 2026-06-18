@@ -1,0 +1,24 @@
+# Core Backend API
+fastapi>=0.103.0
+uvicorn>=0.23.2
+pydantic>=2.3.0
+python-dotenv>=1.0.0
+
+# NEPSE Library
+nepse-scraper>=1.0.1
+
+# Data Processing & Technical Analysis
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+scipy>=1.10.0
+
+# HTML Parsing
+beautifulsoup4>=4.12.0
+
+# Standard HTTP Client (for scrape.do scripts)
+requests>=2.31.0
+
+# Anti-Bot & Cloudflare Bypass Engines
+cloudscraper>=1.2.71
+curl_cffi>=0.6.0

@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as React from "react"
+import { ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor } from "./chat-container";
+import { Message, MessageAvatar, MessageContent } from "./message";
+import { Reasoning, ReasoningTrigger, ReasoningContent } from "./reasoning";
 
 interface UseAutoResizeTextareaProps {
     minHeight: number;
@@ -143,6 +146,7 @@ export function AnimatedAIChat() {
     const [showCommandPalette, setShowCommandPalette] = useState(false);
     const [recentCommand, setRecentCommand] = useState<string | null>(null);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const [messages, setMessages] = useState<{ id: string; role: "user" | "assistant"; content: string; reasoning?: string }[]>([]);
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 60,
         maxHeight: 200,
@@ -261,11 +265,22 @@ export function AnimatedAIChat() {
     const handleSendMessage = () => {
         if (value.trim()) {
             startTransition(() => {
+                const newMsg = { id: Date.now().toString(), role: "user" as const, content: value.trim() };
+                setMessages(prev => [...prev, newMsg]);
                 setIsTyping(true);
+                setValue("");
+                adjustHeight(true);
+
+                // Temp mock response
                 setTimeout(() => {
                     setIsTyping(false);
-                    setValue("");
-                    adjustHeight(true);
+                    const aiMsg = { 
+                        id: (Date.now() + 1).toString(), 
+                        role: "assistant" as const, 
+                        content: "Based on the technical patterns and institutional volume accumulation, the current setup suggests a potential breakout. However, you should wait for confirmation above the resistance level.",
+                        reasoning: "1. Analyzing historical OHLCV data for the requested ticker.\n2. Detected a descending triangle breakout pattern.\n3. RSI is currently at 58, showing bullish divergence.\n4. Volume profile indicates strong institutional buying in the last 3 sessions.\n5. Combining these metrics points to a high probability upside move."
+                    };
+                    setMessages(prev => [...prev, aiMsg]);
                 }, 3000);
             });
         }
@@ -303,32 +318,74 @@ export function AnimatedAIChat() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
                 >
-                    <div className="text-center space-y-3">
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2, duration: 0.5 }}
-                            className="inline-block"
-                        >
-                            <h1 className="text-3xl font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white/90 to-white/40 pb-1">
-                                How can I help today?
-                            </h1>
-                            <motion.div 
-                                className="h-px bg-gradient-to-r from-transparent via-[#10B981]/40 to-transparent"
-                                initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: "100%", opacity: 1 }}
-                                transition={{ delay: 0.5, duration: 0.8 }}
-                            />
-                        </motion.div>
-                        <motion.p 
-                            className="text-sm text-white/40"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            Type a command or ask a question
-                        </motion.p>
-                    </div>
+                    {messages.length === 0 && (
+                        <div className="text-center space-y-3">
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2, duration: 0.5 }}
+                                className="inline-block"
+                            >
+                                <h1 className="text-3xl font-medium tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white/90 to-white/40 pb-1">
+                                    How can I help today?
+                                </h1>
+                                <motion.div 
+                                    className="h-px bg-gradient-to-r from-transparent via-[#10B981]/40 to-transparent"
+                                    initial={{ width: 0, opacity: 0 }}
+                                    animate={{ width: "100%", opacity: 1 }}
+                                    transition={{ delay: 0.5, duration: 0.8 }}
+                                />
+                            </motion.div>
+                            <motion.p 
+                                className="text-sm text-white/40"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                Type a command or ask a question
+                            </motion.p>
+                        </div>
+                    )}
+
+                    {messages.length > 0 && (
+                        <ChatContainerRoot className="max-h-[50vh] overflow-y-auto pr-2 mb-4 scrollbar-thin scrollbar-thumb-white/10">
+                            <ChatContainerContent className="space-y-6">
+                                {messages.map((msg) => (
+                                    <Message key={msg.id} className={msg.role === "user" ? "flex-row-reverse" : ""}>
+                                        <MessageAvatar 
+                                            src={msg.role === "assistant" ? "https://ui.shadcn.com/avatars/01.png" : ""} 
+                                            alt={msg.role} 
+                                            fallback={msg.role === "assistant" ? "AI" : "U"} 
+                                            className={msg.role === "user" ? "bg-zinc-800" : "bg-[#10B981]/20 text-[#10B981]"}
+                                        />
+                                        <div className={cn("flex flex-col gap-2 max-w-[80%]", msg.role === "user" ? "items-end" : "items-start")}>
+                                            {msg.reasoning && (
+                                                <Reasoning className="bg-zinc-900/50 border-zinc-800 text-zinc-400">
+                                                    <ReasoningTrigger>Chain of Thought</ReasoningTrigger>
+                                                    <ReasoningContent className="text-xs">{msg.reasoning}</ReasoningContent>
+                                                </Reasoning>
+                                            )}
+                                            <MessageContent className={cn("!prose-invert", msg.role === "user" ? "bg-white/10 text-white rounded-2xl px-4 py-2" : "text-zinc-300 bg-transparent")}>
+                                                {msg.content}
+                                            </MessageContent>
+                                        </div>
+                                    </Message>
+                                ))}
+                                {isTyping && (
+                                    <Message>
+                                        <MessageAvatar src="" alt="AI" fallback="AI" className="bg-[#10B981]/20 text-[#10B981]" />
+                                        <div>
+                                            <div className="flex items-center gap-2 text-sm text-[#10B981]/70 bg-zinc-900/40 rounded-full px-4 py-2 w-fit">
+                                                <span>Thinking</span>
+                                                <TypingDots />
+                                            </div>
+                                        </div>
+                                    </Message>
+                                )}
+                            </ChatContainerContent>
+                            <ChatContainerScrollAnchor />
+                        </ChatContainerRoot>
+                    )}
 
                     <motion.div 
                         className="relative backdrop-blur-2xl bg-white/[0.02] rounded-2xl border border-white/[0.05] shadow-2xl"
@@ -497,26 +554,7 @@ export function AnimatedAIChat() {
                 </motion.div>
             </div>
 
-            <AnimatePresence>
-                {isTyping && (
-                    <motion.div 
-                        className="fixed bottom-8 mx-auto transform -translate-x-1/2 backdrop-blur-2xl bg-[#10B981]/[0.05] rounded-full px-4 py-2 shadow-lg border border-[#10B981]/[0.2]"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-7 rounded-full bg-[#10B981]/[0.2] flex items-center justify-center text-center">
-                                <span className="text-xs font-medium text-[#10B981] mb-0.5">kitta</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-[#10B981]/70">
-                                <span>Thinking</span>
-                                <TypingDots />
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* We no longer need the floating typing dots here since we moved it into the chat container */}
 
             {inputFocused && (
                 <motion.div 

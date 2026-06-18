@@ -196,8 +196,18 @@ app.get("/api/news", (req, res) => {
   res.json(NEWS_DB);
 });
 
-app.get("/api/tickers", (req, res) => {
-  res.json(TICKERS);
+app.get("/api/tickers", async (req, res) => {
+  try {
+    const response = await fetch(`http://127.0.0.1:8002/api/market/tickers`);
+    if (!response.ok) {
+      return res.status(response.status).json(TICKERS); // fallback to hardcoded
+    }
+    const data = await response.json();
+    return res.json(data);
+  } catch (error: any) {
+    console.error("Error proxying tickers request to FastAPI:", error);
+    return res.json(TICKERS); // fallback to hardcoded
+  }
 });
 
 app.get("/api/alerts", (req, res) => {
@@ -247,7 +257,7 @@ app.post("/api/interrogate", async (req, res) => {
   const activeSymbol = selectedSymbol || "NEPSE";
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/interrogate", {
+    const response = await fetch("http://127.0.0.1:8002/api/interrogate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, symbol: activeSymbol })
@@ -285,7 +295,7 @@ app.post("/api/interrogate", async (req, res) => {
 app.get("/api/chart/:symbol", async (req, res) => {
   const { symbol } = req.params;
   try {
-    const response = await fetch(`http://127.0.0.1:8000/api/chart/${symbol}`);
+    const response = await fetch(`http://127.0.0.1:8002/api/chart/${symbol}`);
     if (!response.ok) {
       return res.status(response.status).send("Chart not found in FastAPI");
     }
@@ -298,10 +308,25 @@ app.get("/api/chart/:symbol", async (req, res) => {
   }
 });
 
+app.get("/api/quant/:symbol", async (req, res) => {
+  const { symbol } = req.params;
+  try {
+    const response = await fetch(`http://127.0.0.1:8002/api/quant/${symbol}`);
+    if (!response.ok) {
+      return res.status(response.status).json({error: "Quant metrics not found in FastAPI"});
+    }
+    const data = await response.json();
+    return res.json(data);
+  } catch (error: any) {
+    console.error("Error proxying quant request to FastAPI:", error);
+    return res.status(500).json({error: "Proxy error fetching quant metrics from FastAPI server"});
+  }
+});
+
 app.get("/api/metrics/:symbol", async (req, res) => {
   const { symbol } = req.params;
   try {
-    const response = await fetch(`http://127.0.0.1:8000/api/metrics/${symbol}`);
+    const response = await fetch(`http://127.0.0.1:8002/api/metrics/${symbol}`);
     if (!response.ok) {
       return res.status(response.status).json({error: "Metrics not found in FastAPI"});
     }
