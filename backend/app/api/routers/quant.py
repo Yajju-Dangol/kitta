@@ -21,6 +21,14 @@ def get_quant_metrics(symbol: str):
         else:
             metrics = q_data_str
 
+        # Parse the JSON string from the database for fundamentals
+        f_data_str = cached_row.get("fundamentals", "{}")
+        if isinstance(f_data_str, str):
+            f_data_str = f_data_str.strip() or "{}"
+            fundamentals = json.loads(f_data_str)
+        else:
+            fundamentals = f_data_str or {}
+
         return QuantMetricsResponse(
             symbol=symbol,
             status="success",
@@ -29,7 +37,8 @@ def get_quant_metrics(symbol: str):
             volatility=metrics.get("volatility", {}),
             microstructure=metrics.get("microstructure", {}),
             statistical=metrics.get("statistical", {}),
-            volume=metrics.get("volume", {})
+            volume=metrics.get("volume", {}),
+            fundamentals=fundamentals
         )
     except HTTPException:
         raise

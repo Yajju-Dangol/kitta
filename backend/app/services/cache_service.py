@@ -2,6 +2,7 @@ from app.db.supabase import supabase_db
 from datetime import datetime, timedelta, timezone
 from app.services.chart_engine import generate_technical_chart, fetch_chart_data
 from app.services.quant_engine import compute_advanced_metrics
+from app.services.fundamentals_engine import get_symbol_fundamentals
 from app.agents.tools import free_web_search
 import json
 import logging
@@ -95,7 +96,10 @@ def _force_fetch_data(symbol: str):
             "sentiment_score": 50 # Default baseline
         })
         
-        pe_ratio = 21.4 # Fallback
+        # 4. Fetch Fundamentals
+        logger.info(f"Fetching fundamentals for {symbol}")
+        funda_data = get_symbol_fundamentals(symbol)
+        pe_ratio = float(funda_data.get("pe", 21.4)) if funda_data and funda_data.get("pe") and funda_data.get("pe") != "--" else 21.4
         
         # Assemble Final Row
         row = {
@@ -108,6 +112,7 @@ def _force_fetch_data(symbol: str):
             "sparkline": sparkline,
             "news_summary": news_json,
             "chart_storage_path": chart_url,
+            "fundamentals": json.dumps(funda_data) if funda_data else "{}"
             # Let database set created_at and expires_at
         }
         

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, RefreshCw, Search, TrendingUp, Activity, Maximize2, BarChart2, Hash, Percent } from "lucide-react";
+import { ArrowLeft, RefreshCw, Search, TrendingUp, Activity, Maximize2, BarChart2, Hash, Percent, Briefcase } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import TimeseriesChart from "../components/TimeseriesChart";
 
@@ -239,6 +239,60 @@ export default function AssetDeepDivePage({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Fundamental Strength */}
+            {quantData.fundamentals && Object.keys(quantData.fundamentals).length > 0 && (
+              <Card className="rounded-xl border-zinc-800 bg-zinc-950 md:col-span-2 xl:col-span-3">
+                <CardHeader className="pb-2 border-b border-zinc-800/50">
+                  <CardTitle className="flex items-center space-x-2 text-xs font-bold uppercase text-zinc-400">
+                    <Briefcase className="w-4 h-4 text-yellow-500" />
+                    <span>Fundamental Strength & Valuation</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  <div>
+                    <span className="text-[10px] text-zinc-500 block uppercase">Rating</span>
+                    <span className={`text-sm font-bold block mt-1 uppercase ${quantData.fundamentals.financial_strength === 'Strong' ? 'text-[#10B981]' : quantData.fundamentals.financial_strength === 'Weak' ? 'text-red-500' : 'text-yellow-400'}`}>
+                      {quantData.fundamentals.financial_strength || 'N/A'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 block uppercase">P/E Ratio</span>
+                    <span className="text-lg font-bold text-zinc-200 block">{quantData.fundamentals.pe}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 block uppercase">P/B Ratio</span>
+                    <span className="text-lg font-bold text-zinc-200 block">{quantData.fundamentals.pb}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 block uppercase">ROE</span>
+                    <span className="text-lg font-bold text-zinc-200 block">{quantData.fundamentals.roe}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 block uppercase">Dividend Yield</span>
+                    <span className="text-lg font-bold text-zinc-200 block">{quantData.fundamentals.dividend_yield}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 block uppercase">Graham Discount</span>
+                    <span className={`text-lg font-bold block ${quantData.fundamentals.graham_discount.includes('-') ? 'text-[#10B981]' : 'text-red-500'}`}>
+                      {quantData.fundamentals.graham_discount}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 block uppercase">P/E vs Sector</span>
+                    <span className={`text-sm font-bold block mt-1 uppercase ${quantData.fundamentals.pe_vs_sector === 'Undervalued' ? 'text-[#10B981]' : quantData.fundamentals.pe_vs_sector === 'Overvalued' ? 'text-red-500' : 'text-zinc-400'}`}>
+                      {quantData.fundamentals.pe_vs_sector}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-500 block uppercase">P/B vs Sector</span>
+                    <span className={`text-sm font-bold block mt-1 uppercase ${quantData.fundamentals.pb_vs_sector === 'Undervalued' ? 'text-[#10B981]' : quantData.fundamentals.pb_vs_sector === 'Overvalued' ? 'text-red-500' : 'text-zinc-400'}`}>
+                      {quantData.fundamentals.pb_vs_sector}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
           </div>
         </div>

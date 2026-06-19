@@ -49,3 +49,4 @@ class QuantMetricsResponse(BaseModel):
     microstructure: Dict[str, Any]
     statistical: Dict[str, Any]
     volume: Dict[str, Any]
+    fundamentals: Optional[Dict[str, Any]] = None
