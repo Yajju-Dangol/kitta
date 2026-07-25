@@ -156,6 +156,22 @@ CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst
             yield f"data: {json.dumps({'type': 'reasoning', 'text': 'Fetching generated data and charts from the 24-hour global cache...' + chr(10)})}\n\n"
             news_data = cached_data.get("news_summary", "No news cached.")
             quant_data = cached_data.get("quant_metrics", "No quant metrics cached.")
+            
+            # Parse quant_data and create version for prompt (without historical_prices to save tokens)
+            try:
+                if isinstance(quant_data, str):
+                    quant_dict = json.loads(quant_data)
+                else:
+                    quant_dict = quant_data
+                
+                # Create a copy for LLM prompt without historical_prices
+                quant_dict_for_prompt = quant_dict.copy() if isinstance(quant_dict, dict) else {}
+                quant_dict_for_prompt.pop("historical_prices", None)
+                quant_data_for_prompt = json.dumps(quant_dict_for_prompt, indent=2)
+            except Exception as e:
+                print(f"Error parsing cached quant data: {e}")
+                quant_data_for_prompt = str(quant_data)
+            
             # We don't need to generate the chart; it's already generated.
 
             # Ensure company_name is populated in the cache entry
@@ -187,7 +203,6 @@ CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst
             async def fetch_quant():
                 try:
                     from app.services.cache_service import get_or_fetch_stock_data
-                    import json
                     cached = await asyncio.to_thread(get_or_fetch_stock_data, symbol)
                     quant_dict = json.loads(cached.get("quant_metrics", "{}"))
                     # Create a copy for LLM prompt without historical_prices (to save tokens)

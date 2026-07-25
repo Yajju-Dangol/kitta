@@ -1,9 +1,28 @@
 from google.adk.agents import Agent
 from app.agents.tools import run_chart_analysis
+import os
+
+# Get the appropriate model based on available API keys
+def get_model():
+    """Select model based on available API keys with fallback support."""
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    
+    if gemini_key:
+        return "gemini-3.5-flash-lite"
+    elif openrouter_key:
+        print("[INFO] GEMINI_API_KEY not found. Using OpenRouter fallback for chart analyst.")
+        return "openrouter/free"
+    else:
+        raise ValueError(
+            "No LLM API keys configured. Please set either GEMINI_API_KEY or OPENROUTER_API_KEY in your .env file.\n"
+            "Get a free Gemini API key from: https://aistudio.google.com/apikey\n"
+            "Or get a free OpenRouter API key from: https://openrouter.ai/settings/keys"
+        )
 
 chart_analyst_agent = Agent(
     name="chart_analyst",
-    model="gemini-1.5-flash",
+    model=get_model(),
     description="Chart Analyst Agent specialized in running technical analysis, calculating indicators, and assessing charts.",
     instruction="""You are a specialized Chartered Technical Analyst (CMT) for KITTA Terminal.
     Your main job is to:
