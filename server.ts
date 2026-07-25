@@ -12,6 +12,8 @@ const PORT = 3000;
 
 app.use(express.json());
 
+const BACKEND_URL = process.env.BACKEND_URL || "https://kitta-2mgs.onrender.com";
+
 // ---------------------------------------------------------------------------
 // Supabase Admin Client (Service Role — server-side only, never sent to browser)
 // ---------------------------------------------------------------------------
@@ -483,7 +485,7 @@ app.post("/api/interrogate", async (req, res) => {
   if (!prompt) return res.status(400).json({ error: "No prompt query provided." });
   const activeSymbol = selectedSymbol || "NEPSE";
   try {
-    const response = await fetch("http://127.0.0.1:8002/api/interrogate", {
+    const response = await fetch(`${BACKEND_URL}/api/interrogate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, symbol: activeSymbol }),
@@ -504,7 +506,7 @@ app.post("/api/interrogate/stream", async (req, res) => {
   if (!prompt) return res.status(400).json({ error: "No prompt query provided." });
   const activeSymbol = selectedSymbol || "NEPSE";
   try {
-    const response = await fetch("http://127.0.0.1:8002/api/interrogate/stream", {
+    const response = await fetch(`${BACKEND_URL}/api/interrogate/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, symbol: activeSymbol }),
@@ -532,7 +534,7 @@ app.post("/api/interrogate/stream", async (req, res) => {
 app.get("/api/chart/:symbol", async (req, res) => {
   const { symbol } = req.params;
   try {
-    const response = await fetch(`http://127.0.0.1:8002/api/chart/${symbol}`);
+    const response = await fetch(`${BACKEND_URL}/api/chart/${symbol}`);
     if (!response.ok) return res.status(response.status).send("Chart not found");
     res.setHeader("Content-Type", "image/png");
     return res.send(Buffer.from(await response.arrayBuffer()));
@@ -544,7 +546,7 @@ app.get("/api/chart/:symbol", async (req, res) => {
 app.get("/api/quant/:symbol", async (req, res) => {
   const { symbol } = req.params;
   try {
-    const response = await fetch(`http://127.0.0.1:8002/api/quant/${symbol}`);
+    const response = await fetch(`${BACKEND_URL}/api/quant/${symbol}`);
     if (!response.ok) return res.status(response.status).json({ error: "Not found" });
     return res.json(await response.json());
   } catch {
@@ -555,7 +557,7 @@ app.get("/api/quant/:symbol", async (req, res) => {
 app.get("/api/metrics/:symbol", async (req, res) => {
   const { symbol } = req.params;
   try {
-    const response = await fetch(`http://127.0.0.1:8002/api/metrics/${symbol}`);
+    const response = await fetch(`${BACKEND_URL}/api/metrics/${symbol}`);
     if (!response.ok) return res.status(response.status).json({ error: "Not found" });
     return res.json(await response.json());
   } catch {
@@ -585,4 +587,8 @@ async function boot() {
   });
 }
 
-boot();
+if (!process.env.VERCEL) {
+  boot();
+}
+
+export default app;
