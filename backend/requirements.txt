@@ -22,3 +22,6 @@ requests>=2.31.0
 # Anti-Bot & Cloudflare Bypass Engines
 cloudscraper>=1.2.71
 curl_cffi>=0.6.0
+
+# Google ADK
+google-adk>=0.1.0
