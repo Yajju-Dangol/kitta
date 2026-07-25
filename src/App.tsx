@@ -146,7 +146,13 @@ export default function App() {
         if (res.ok) return res.json();
         throw new Error();
       })
-      .then((data) => setStocks(data))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setStocks(data);
+        } else if (data && Array.isArray(data.stocks)) {
+          setStocks(data.stocks);
+        }
+      })
       .catch(() => {});
   };
 

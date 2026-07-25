@@ -1,8 +1,16 @@
 {
   "rewrites": [
     {
+      "source": "/api/tickers",
+      "destination": "https://kitta-2mgs.onrender.com/api/market/tickers"
+    },
+    {
+      "source": "/api/stocks",
+      "destination": "https://kitta-2mgs.onrender.com/api/watchlist"
+    },
+    {
       "source": "/api/:path*",
-      "destination": "https://kitta-2mgs.onrender.com//api/:path*"
+      "destination": "https://kitta-2mgs.onrender.com/api/:path*"
     }
   ]
 }
