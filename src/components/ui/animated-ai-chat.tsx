@@ -300,7 +300,7 @@ export function AnimatedAIChat() {
             const symbol = selectedSymbol.toUpperCase();
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
 
             const response = await fetch("/api/interrogate/stream", {
                 method: "POST",

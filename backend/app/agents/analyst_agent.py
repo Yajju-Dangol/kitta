@@ -6,7 +6,7 @@ chart_agent_tool = AgentTool(agent=chart_analyst_agent, skip_summarization=False
 
 analyst_agent = Agent(
     name="analyst_agent",
-    model="gemini-3.1-flash-lite",
+    model="gemini-1.5-flash",
     description="Master Analyst Agent that compiles news and chart data from specialized agents to produce stock reports.",
     instruction="""You are KITTA (किट्टा), the master AI financial analyst for the Nepal Stock Exchange (NEPSE).
     Your task is to respond to the investor's specific query by generating a comprehensive, high-fidelity stock appraisal.

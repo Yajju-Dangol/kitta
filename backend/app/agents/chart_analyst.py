@@ -3,7 +3,7 @@ from app.agents.tools import run_chart_analysis
 
 chart_analyst_agent = Agent(
     name="chart_analyst",
-    model="gemini-3.1-flash-lite",
+    model="gemini-1.5-flash",
     description="Chart Analyst Agent specialized in running technical analysis, calculating indicators, and assessing charts.",
     instruction="""You are a specialized Chartered Technical Analyst (CMT) for KITTA Terminal.
     Your main job is to:

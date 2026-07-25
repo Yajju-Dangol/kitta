@@ -6,8 +6,25 @@ from app.services.fundamentals_engine import get_symbol_fundamentals
 from app.agents.tools import free_web_search
 import json
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
+def get_company_name(symbol: str) -> str:
+    """
+    Look up the full company name from companies.json.
+    Returns the full name if found, otherwise returns the ticker symbol.
+    """
+    symbol = symbol.strip().upper()
+    try:
+        companies_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents", "companies.json")
+        if os.path.exists(companies_path):
+            with open(companies_path, "r", encoding="utf-8") as f:
+                companies = json.load(f)
+                return companies.get(symbol, symbol)
+    except Exception:
+        pass
+    return symbol
 
 def get_or_fetch_stock_data(symbol: str, force_refresh: bool = False):
     """
@@ -104,7 +121,7 @@ def _force_fetch_data(symbol: str):
         # Assemble Final Row
         row = {
             "symbol": symbol,
-            "company_name": f"{symbol}",
+            "company_name": get_company_name(symbol),
             "latest_price": latest_price,
             "quant_metrics": quant_json,
             "pe_ratio": pe_ratio,

@@ -170,6 +170,7 @@ CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst
             yield f"data: {json.dumps({'type': 'reasoning', 'text': 'News Agent is scanning the live web for real-time data...' + chr(10)})}\n\n"
             
             from app.agents.tools import free_web_search
+            from app.services.cache_service import get_company_name
             import requests
             
             # Concurrently fetch news and quant metrics
@@ -196,7 +197,7 @@ CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst
                 try:
                     supabase_db.table("stock_cache").upsert({
                         "symbol": symbol,
-                        "company_name": "", # Could be extracted if needed
+                        "company_name": get_company_name(symbol),
                         "latest_price": chart_res.get("latest_close", 0),
                         "quant_metrics": quant_data,
                         "news_summary": news_data,

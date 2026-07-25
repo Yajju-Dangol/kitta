@@ -291,6 +291,47 @@ app.post("/api/interrogate", async (req, res) => {
   }
 });
 
+app.post("/api/interrogate/stream", async (req, res) => {
+  const { prompt, symbol: selectedSymbol } = req.body;
+  if (!prompt) {
+    return res.status(400).json({ error: "No prompt query provided." });
+  }
+
+  const activeSymbol = selectedSymbol || "NEPSE";
+
+  try {
+    const response = await fetch("http://127.0.0.1:8002/api/interrogate/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, symbol: activeSymbol })
+    });
+    
+    if (!response.ok) {
+      return res.status(response.status).json({error: "Failed to stream from FastAPI"});
+    }
+    
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    
+    // Properly pipe the web stream to the Express response
+    if (response.body) {
+      const reader = (response.body as any).getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+      res.end();
+    } else {
+      res.end();
+    }
+  } catch (error: any) {
+    console.error("Gemini invocation error proxying stream to FastAPI: ", error);
+    res.status(500).end();
+  }
+});
+
 // Proxy route for generating/fetching visual technical charts
 app.get("/api/chart/:symbol", async (req, res) => {
   const { symbol } = req.params;
