@@ -15,23 +15,69 @@ class WatchlistAddRequest(BaseModel):
     symbol: str
 
 @router.post("/add")
-async def add_watchlist_item(req: WatchlistAddRequest):
+async def add_watchlist_item(req: WatchlistAddRequest, background_tasks: BackgroundTasks):
+    """
+    Add a stock to the watchlist and ensure its data is cached.
+    If the stock data doesn't exist, fetch it in the background.
+    """
     if not supabase_db:
         raise HTTPException(status_code=500, detail="Database not connected")
+    
     sym = req.symbol.strip().upper()
+    
     try:
-        # Assuming we just need to insert. Let's let Postgres handle duplicates if there's a unique constraint,
-        # or we can check first.
+        # Check if symbol already exists in watchlist
         res = supabase_db.table("watchlist_items").select("*").eq("symbol", sym).execute()
+        
         if len(res.data) == 0:
-            # Using the Default Watchlist ID we just created for the MVP
+            # Add to watchlist (using default watchlist ID for MVP)
             supabase_db.table("watchlist_items").insert({
                 "watchlist_id": "3abec7be-0a38-46f6-aacb-b7f0d6732ef7", 
                 "symbol": sym
             }).execute()
-        return {"status": "success"}
+        
+        # Ensure stock data exists in cache
+        # Check if data exists and is fresh
+        cache_check = supabase_db.table("stock_cache").select("expires_at").eq("symbol", sym).execute()
+        
+        if not cache_check.data or len(cache_check.data) == 0:
+            # No cache exists - fetch data in background
+            background_tasks.add_task(fetch_stock_data_background, sym)
+            return {"status": "success", "message": f"Added {sym} to watchlist. Data is being fetched."}
+        else:
+            # Check if cache is expired
+            from datetime import datetime, timezone
+            expires_at_str = cache_check.data[0].get("expires_at")
+            if expires_at_str:
+                try:
+                    expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
+                    if datetime.now(timezone.utc) >= expires_at:
+                        # Cache expired - refresh in background
+                        background_tasks.add_task(fetch_stock_data_background, sym, force_refresh=True)
+                        return {"status": "success", "message": f"Added {sym} to watchlist. Data is being refreshed."}
+                except Exception as e:
+                    print(f"Error parsing expires_at: {e}")
+        
+        return {"status": "success", "message": f"Added {sym} to watchlist."}
+        
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def fetch_stock_data_background(symbol: str, force_refresh: bool = False):
+    """
+    Background task to fetch and cache stock data.
+    """
+    try:
+        print(f"[WATCHLIST] Fetching data for {symbol}...")
+        get_or_fetch_stock_data(symbol, force_refresh=force_refresh)
+        print(f"[WATCHLIST] Successfully cached data for {symbol}")
+    except Exception as e:
+        print(f"[WATCHLIST] Failed to fetch data for {symbol}: {e}")
+        import traceback
+        traceback.print_exc()
 
 @router.get("/")
 async def get_watchlist():
