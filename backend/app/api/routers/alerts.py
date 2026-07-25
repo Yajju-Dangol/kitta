@@ -47,7 +47,8 @@ async def get_alerts(authorization: Optional[str] = Header(default=None)):
             res = supabase_db.table("alerts").select("*").is_("user_id", "null").execute()
         return res.data or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching alerts: {str(e)}")
+        print(f"Alerts table error (table might be missing): {e}")
+        return []
 
 
 @router.post("/")
