@@ -26,6 +26,17 @@ export default function TimeseriesChart({
 
   // Generate responsive price history based on range selection
   const getChartData = () => {
+    // Defensive check: ensure sparkline is a valid array with data
+    if (!sparkline || !Array.isArray(sparkline) || sparkline.length === 0) {
+      // Return default fallback data
+      const fallbackData = [1200, 1220, 1195, 1230, 1225, 1215, 1230, 1235, 1240, price || 1245];
+      return fallbackData.map((pt, index) => ({
+        index,
+        price: pt,
+        speculated: null
+      }));
+    }
+
     let base = sparkline;
     if (range === '1W') {
       base = sparkline.map(v => v * (1 + (Math.sin(v) * 0.015)));
@@ -37,7 +48,7 @@ export default function TimeseriesChart({
 
     // Keep active price as the final point
     const pts = [...base];
-    if (price > 0) {
+    if (price > 0 && pts.length > 0) {
       pts[pts.length - 1] = price;
     }
     
@@ -47,6 +58,15 @@ export default function TimeseriesChart({
       price: pt,
       speculated: null
     }));
+
+    // Defensive check: ensure data array is not empty
+    if (data.length === 0) {
+      return [{
+        index: 0,
+        price: price || 1200,
+        speculated: null
+      }];
+    }
 
     // Generate speculated trendline points into the future
     const lastPrice = pts[pts.length - 1];
