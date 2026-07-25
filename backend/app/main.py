@@ -28,6 +28,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.get("/")
+    def read_root():
+        return {"status": "alive"}
+
     @app.get("/api/health", tags=["system"])
     def health_check():
         return {"status": "ok", "service": "KITTA Robust Backend Engine"}
