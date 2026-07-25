@@ -25,3 +25,6 @@ curl_cffi>=0.6.0
 
 # Google ADK
 google-adk>=0.1.0
+
+# Supabase
+supabase>=2.0.0
