@@ -302,7 +302,7 @@ export function AnimatedAIChat() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-            const response = await fetch("http://127.0.0.1:8002/api/interrogate/stream", {
+            const response = await fetch("/api/interrogate/stream", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ symbol: symbol, prompt: userMessage }),

@@ -32,7 +32,7 @@ export default function WatchlistForgePage({
 
   const fetchWatchlist = () => {
     setLoading(true);
-    fetch("http://localhost:8002/api/watchlist/")
+    fetch("/api/watchlist")
       .then(res => res.json())
       .then(data => {
         if (data.stocks) {
@@ -59,7 +59,7 @@ export default function WatchlistForgePage({
   const handleAddStock = () => {
     if (!newSymbol.trim()) return;
     setAdding(true);
-    fetch("http://localhost:8002/api/watchlist/add", {
+    fetch("/api/watchlist/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ symbol: newSymbol.toUpperCase() })

@@ -120,7 +120,7 @@ export default function TimeseriesChart({
 
         <div className="h-[200px] w-full px-2 mt-4">
             <ChartContainer config={chartConfig} className="h-full w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
                   <XAxis dataKey="index" hide />
                   <YAxis domain={[minVal, maxVal]} hide />
