@@ -157,6 +157,16 @@ CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst
             news_data = cached_data.get("news_summary", "No news cached.")
             quant_data = cached_data.get("quant_metrics", "No quant metrics cached.")
             # We don't need to generate the chart; it's already generated.
+
+            # Ensure company_name is populated in the cache entry
+            if not cached_data.get("company_name"):
+                from app.services.cache_service import get_company_name
+                try:
+                    supabase_db.table("stock_cache").update({
+                        "company_name": get_company_name(symbol)
+                    }).eq("symbol", symbol).execute()
+                except Exception as e:
+                    print(f"Failed to update company_name in cache: {e}")
         else:
             from app.services.chart_engine import generate_technical_chart
             yield f"data: {json.dumps({'type': 'reasoning', 'text': 'System is initializing chart generation engine...' + chr(10)})}\n\n"
