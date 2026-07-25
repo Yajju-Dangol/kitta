@@ -157,7 +157,10 @@ export default function App() {
   };
 
   const fetchAlerts = () => {
-    fetch("/api/alerts")
+    const headers: Record<string, string> = {};
+    const token = session?.access_token;
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    fetch("/api/alerts", { headers })
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error();
@@ -203,6 +206,7 @@ export default function App() {
             onTriggerInterrogation={handleTriggerInterrogation}
             onRefreshAlerts={fetchAlerts}
             onNavigateToDrilldown={handleNavigateToDrilldown}
+            session={session}
           />
         );
       case 'sandbox':

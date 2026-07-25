@@ -44,10 +44,15 @@ CREATE TRIGGER on_auth_user_created
 
 CREATE TABLE IF NOT EXISTS public.watchlists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,  -- Made nullable for MVP
     name TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Create a default watchlist for MVP (no auth)
+INSERT INTO public.watchlists (id, name) 
+VALUES ('3abec7be-0a38-46f6-aacb-b7f0d6732ef7', 'Default Watchlist')
+ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS public.watchlist_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -101,6 +106,26 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
 
 
 -------------------------------------------------------------------------------
+-- 5. ALERTS SYSTEM
+-------------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    symbol TEXT NOT NULL,
+    condition TEXT NOT NULL,  -- e.g., "price_above", "price_below", "rsi_oversold"
+    target_value NUMERIC NOT NULL,
+    message TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    triggered_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_active ON public.alerts(is_active);
+CREATE INDEX IF NOT EXISTS idx_alerts_symbol ON public.alerts(symbol);
+
+
+-------------------------------------------------------------------------------
 -- 5. STORAGE BUCKET CONFIGURATION
 -------------------------------------------------------------------------------
 
@@ -121,21 +146,23 @@ ALTER TABLE public.watchlist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stock_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.alerts ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: Users can read and update their own profile
 CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- Watchlists: Full access to own watchlists
+-- Watchlists: Full access to own watchlists OR public access for MVP (no auth)
 CREATE POLICY "Users manage own watchlists" ON public.watchlists 
-    FOR ALL USING (auth.uid() = user_id);
+    FOR ALL USING (auth.uid() = user_id OR user_id IS NULL);
 
--- Watchlist Items: Full access to items in own watchlists
+-- Watchlist Items: Full access to items in own watchlists OR public access for MVP
 CREATE POLICY "Users manage own watchlist items" ON public.watchlist_items 
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM public.watchlists 
-            WHERE id = watchlist_items.watchlist_id AND user_id = auth.uid()
+            WHERE id = watchlist_items.watchlist_id 
+            AND (user_id = auth.uid() OR user_id IS NULL)
         )
     );
 
@@ -154,6 +181,10 @@ CREATE POLICY "Users manage own messages" ON public.chat_messages
             WHERE id = chat_messages.session_id AND user_id = auth.uid()
         )
     );
+
+-- Alerts: Users can manage their own alerts OR public access for MVP
+CREATE POLICY "Users manage own alerts" ON public.alerts 
+    FOR ALL USING (auth.uid() = user_id OR user_id IS NULL);
 
 
 -------------------------------------------------------------------------------

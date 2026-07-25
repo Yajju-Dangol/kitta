@@ -9,6 +9,8 @@ interface FinancialTableProps {
   title?: string;
   stocks: Stock[];
   onStockSelect?: (symbol: string) => void;
+  onRemoveStock?: (symbol: string) => void;
+  showRemove?: boolean;
   className?: string;
 }
 
@@ -16,6 +18,8 @@ export function FinancialTable({
   title = "NEPSE Watchlist",
   stocks,
   onStockSelect,
+  onRemoveStock,
+  showRemove = false,
   className = ""
 }: FinancialTableProps) {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
@@ -185,7 +189,9 @@ export function FinancialTable({
               className="px-8 py-4 text-xs font-medium text-zinc-500 uppercase tracking-wider bg-[#141417] border-b border-[#202024] text-left"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(80px, 1fr) minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(80px, 1fr) minmax(80px, 1fr)',
+                gridTemplateColumns: showRemove 
+                  ? 'minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(80px, 1fr) minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(80px, 1fr) minmax(80px, 1fr) 60px'
+                  : 'minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(80px, 1fr) minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(80px, 1fr) minmax(80px, 1fr)',
                 columnGap: '16px'
               }}
             >
@@ -199,6 +205,7 @@ export function FinancialTable({
               <div style={{ textAlign: 'center' }}>30 Day Chart</div>
               <div style={{ textAlign: 'right' }}>Rel Vol</div>
               <div style={{ textAlign: 'center' }}>AI Risk</div>
+              {showRemove && <div style={{ textAlign: 'center' }}>Action</div>}
             </div>
 
             {/* Table Rows */}
@@ -222,7 +229,9 @@ export function FinancialTable({
                       } ${indexNum < stocks.length - 1 && selectedSymbol !== stock.symbol ? "border-b border-[#202024]/50" : ""}`}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: 'minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(80px, 1fr) minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(80px, 1fr) minmax(80px, 1fr)',
+                        gridTemplateColumns: showRemove
+                          ? 'minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(80px, 1fr) minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(80px, 1fr) minmax(80px, 1fr) 60px'
+                          : 'minmax(150px, 1.5fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(80px, 1fr) minmax(120px, 1.2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(120px, 1.2fr) minmax(80px, 1fr) minmax(80px, 1fr)',
                         columnGap: '16px'
                       }}
                       onClick={() => handleStockSelect(stock.symbol)}
@@ -318,15 +327,35 @@ export function FinancialTable({
                       if (risk.toLowerCase() === "high") colorClass = "text-red-500 bg-red-500/10 border-red-500/20";
                       
                       return (
-                        <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${colorClass}`}>
-                          {risk}
+                        <div className={`px-2 py-1 rounded border text-[10px] font-bold tracking-widest ${colorClass}`}>
+                          {risk.toUpperCase()}
                         </div>
                       );
                     })()}
                   </div>
-                </div>
-              </motion.div>
-            )})}
+
+                  {/* 11. Remove Button (optional) */}
+                  {showRemove && onRemoveStock && (
+                    <div className="flex items-center justify-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveStock(stock.symbol);
+                        }}
+                        className="text-zinc-500 hover:text-red-500 transition-colors p-1 hover:bg-red-500/10 rounded"
+                        title="Remove from watchlist"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           </div>
         </div>

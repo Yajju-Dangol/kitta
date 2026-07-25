@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Stock, AlertRule } from "../types";
 import DrawerSlideOver from "../components/DrawerSlideOver";
 import { AnimatedAIChat } from "../components/ui/animated-ai-chat";
 import { FinancialTable } from "../components/ui/financial-markets-table";
 import { X, Loader2, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect } from "react";
+import { Session } from "@supabase/supabase-js";
 
 interface WatchlistForgePageProps {
   stocks: Stock[];
@@ -13,6 +13,7 @@ interface WatchlistForgePageProps {
   onTriggerInterrogation: (symbol: string) => void;
   onRefreshAlerts: () => void;
   onNavigateToDrilldown: (symbol: string) => void;
+  session: Session | null;
 }
 
 export default function WatchlistForgePage({
@@ -20,7 +21,8 @@ export default function WatchlistForgePage({
   alerts,
   onTriggerInterrogation,
   onRefreshAlerts,
-  onNavigateToDrilldown
+  onNavigateToDrilldown,
+  session,
 }: WatchlistForgePageProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidecarOpen, setSidecarOpen] = useState(false);
@@ -30,22 +32,29 @@ export default function WatchlistForgePage({
   const [newSymbol, setNewSymbol] = useState("");
   const [adding, setAdding] = useState(false);
 
+  /** Build auth headers. Sends Bearer token when user is logged in. */
+  const authHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const token = session?.access_token;
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return headers;
+  };
+
   const fetchWatchlist = () => {
     setLoading(true);
-    fetch("/api/watchlist")
-      .then(res => res.json())
-      .then(data => {
-        if (data.stocks) {
-          setWatchlistStocks(data.stocks);
-        }
+    fetch("/api/watchlist", { headers: authHeaders() })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.stocks) setWatchlistStocks(data.stocks);
       })
-      .catch(err => console.error("Failed to fetch watchlist", err))
+      .catch((err) => console.error("Failed to fetch watchlist", err))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchWatchlist();
-  }, []);
+    // Re-fetch whenever the session changes (login / logout)
+  }, [session]);
 
   const handleAskAI = (symbol: string) => {
     setTargetSymbol(symbol);
@@ -61,23 +70,37 @@ export default function WatchlistForgePage({
     setAdding(true);
     fetch("/api/watchlist/add", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol: newSymbol.toUpperCase() })
+      headers: authHeaders(),
+      body: JSON.stringify({ symbol: newSymbol.toUpperCase() }),
     })
-      .then(res => res.json())
+      .then((res) => res.json())
       .then(() => {
         setNewSymbol("");
-        fetchWatchlist();
+        // Delay slightly to let the background analysis task start
+        setTimeout(fetchWatchlist, 500);
       })
-      .catch(err => console.error("Failed to add stock", err))
+      .catch((err) => console.error("Failed to add stock", err))
       .finally(() => setAdding(false));
   };
 
-  const handleCommitParameters = (symbol: string, rule: { metric: 'PE' | 'Price' | 'DivYield'; operator: '<' | '>'; value: number }) => {
+  const handleRemoveStock = (symbol: string) => {
+    fetch(`/api/watchlist/remove/${symbol}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    })
+      .then((res) => res.json())
+      .then(() => fetchWatchlist())
+      .catch((err) => console.error("Failed to remove stock", err));
+  };
+
+  const handleCommitParameters = (
+    symbol: string,
+    rule: { metric: "PE" | "Price" | "DivYield"; operator: "<" | ">"; value: number }
+  ) => {
     fetch("/api/alerts", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol, ...rule })
+      headers: authHeaders(),
+      body: JSON.stringify({ symbol, ...rule }),
     })
       .then((res) => {
         if (res.ok) {
@@ -88,7 +111,7 @@ export default function WatchlistForgePage({
       .catch(() => {});
   };
 
-  const activeStock = stocks.find(s => s.symbol === targetSymbol) || stocks[0];
+  const activeStock = stocks.find((s) => s.symbol === targetSymbol) || stocks[0];
 
   return (
     <div className="flex-1 flex flex-col p-4.5 space-y-4 overflow-y-auto w-full max-w-full">
@@ -111,6 +134,11 @@ export default function WatchlistForgePage({
         >
           {adding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
         </button>
+        {!session && (
+          <span className="text-xs text-zinc-500 ml-2">
+            Log in to save your personal watchlist
+          </span>
+        )}
       </div>
 
       {/* High-Performance Animated Watchlist Matrix */}
@@ -119,10 +147,12 @@ export default function WatchlistForgePage({
           <Loader2 className="w-8 h-8 animate-spin text-[#10B981]" />
         </div>
       ) : (
-        <FinancialTable 
+        <FinancialTable
           title="NEPSE Active Watchlist"
           stocks={watchlistStocks}
           onStockSelect={handleStockSelect}
+          onRemoveStock={handleRemoveStock}
+          showRemove={true}
           className="mt-0"
         />
       )}
@@ -158,8 +188,12 @@ export default function WatchlistForgePage({
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-zinc-800/80 bg-black/40">
                 <div className="flex flex-col">
-                  <span className="text-[9px] text-zinc-500 font-semibold tracking-wider font-mono">WORKSPACE ANALYSIS</span>
-                  <span className="text-xs font-bold text-zinc-200 uppercase mt-0.5">AI Research Assistant</span>
+                  <span className="text-[9px] text-zinc-500 font-semibold tracking-wider font-mono">
+                    WORKSPACE ANALYSIS
+                  </span>
+                  <span className="text-xs font-bold text-zinc-200 uppercase mt-0.5">
+                    AI Research Assistant
+                  </span>
                 </div>
                 <button
                   onClick={() => setSidecarOpen(false)}
@@ -171,7 +205,7 @@ export default function WatchlistForgePage({
               {/* Sidecar container */}
               <div className="flex-1 min-h-0 overflow-y-auto relative">
                 <div className="absolute inset-0 scale-[0.8] origin-top">
-                   <AnimatedAIChat />
+                  <AnimatedAIChat />
                 </div>
               </div>
             </motion.div>
