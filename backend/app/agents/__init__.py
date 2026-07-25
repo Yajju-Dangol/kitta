@@ -190,26 +190,31 @@ CRITICAL INSTRUCTION: You MUST call the `news_agent` tool and the `chart_analyst
                     import json
                     cached = await asyncio.to_thread(get_or_fetch_stock_data, symbol)
                     quant_dict = json.loads(cached.get("quant_metrics", "{}"))
-                    quant_dict.pop("historical_prices", None) # Remove massive array
-                    return json.dumps(quant_dict, indent=2)
+                    # Create a copy for LLM prompt without historical_prices (to save tokens)
+                    quant_dict_for_prompt = quant_dict.copy()
+                    quant_dict_for_prompt.pop("historical_prices", None)
+                    return json.dumps(quant_dict), json.dumps(quant_dict_for_prompt, indent=2)
                 except Exception as e:
-                    return f"Quant error: {str(e)}"
+                    return "{}", f"Quant error: {str(e)}"
                     
-            news_data, quant_data = await asyncio.gather(
+            news_data_result, quant_result = await asyncio.gather(
                 asyncio.to_thread(free_web_search, symbol),
                 fetch_quant()
             )
             
+            news_data = news_data_result
+            quant_data_full, quant_data_for_prompt = quant_result if isinstance(quant_result, tuple) else ("{}", quant_result)
+            
             yield f"data: {json.dumps({'type': 'reasoning', 'text': 'News Agent successfully compiled all recent web news and quantitative metrics.' + chr(10)})}\n\n"
             
-            # Insert into Supabase Cache
+            # Insert into Supabase Cache with FULL quant_metrics (including historical_prices)
             if supabase_db:
                 try:
                     supabase_db.table("stock_cache").upsert({
                         "symbol": symbol,
                         "company_name": get_company_name(symbol),
                         "latest_price": chart_res.get("latest_close", 0),
-                        "quant_metrics": quant_data,
+                        "quant_metrics": quant_data_full,  # Store FULL data with historical_prices
                         "news_summary": news_data,
                         "chart_storage_path": chart_url
                     }).execute()
@@ -229,7 +234,7 @@ CRITICAL INSTRUCTION: First, analyze the User Query.
 ------------------------
 
 --- QUANT METRICS (Dashboard Data) ---
-{quant_data}
+{quant_data_for_prompt}
 ------------------------
 """
         content = types.Content(role='user', parts=[types.Part(text=full_prompt)])
