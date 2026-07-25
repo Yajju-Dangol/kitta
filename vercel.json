@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://YOUR_RENDER_APP_URL.onrender.com/api/:path*"
+      "destination": "https://kitta-2mgs.onrender.com//api/:path*"
     }
   ]
 }
