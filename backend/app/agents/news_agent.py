@@ -14,11 +14,8 @@ def get_model():
         print("[INFO] GEMINI_API_KEY not found. Using OpenRouter fallback for news agent.")
         return "openrouter/free"
     else:
-        raise ValueError(
-            "No LLM API keys configured. Please set either GEMINI_API_KEY or OPENROUTER_API_KEY in your .env file.\n"
-            "Get a free Gemini API key from: https://aistudio.google.com/apikey\n"
-            "Or get a free OpenRouter API key from: https://openrouter.ai/settings/keys"
-        )
+        print("[WARNING] No LLM API keys configured. Using default model for news agent.")
+        return "gemini-3.1-flash-lite"
 
 news_agent = Agent(
     name="news_agent",

@@ -17,11 +17,8 @@ def get_model():
         # If this fails, you need to set GEMINI_API_KEY
         return "openrouter/free"
     else:
-        raise ValueError(
-            "No LLM API keys configured. Please set either GEMINI_API_KEY or OPENROUTER_API_KEY in your .env file.\n"
-            "Get a free Gemini API key from: https://aistudio.google.com/apikey\n"
-            "Or get a free OpenRouter API key from: https://openrouter.ai/settings/keys"
-        )
+        print("[WARNING] No LLM API keys configured. Using default model for analyst agent.")
+        return "gemini-3.5-flash-lite"
 
 chart_agent_tool = AgentTool(agent=chart_analyst_agent, skip_summarization=False)
 
