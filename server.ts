@@ -45,7 +45,19 @@ async function getUserId(req: express.Request): Promise<string | null> {
 const DEFAULT_WATCHLIST_ID = "3abec7be-0a38-46f6-aacb-b7f0d6732ef7";
 
 async function getOrCreateWatchlist(userId: string | null): Promise<string> {
-  if (!userId || !supabase) return DEFAULT_WATCHLIST_ID;
+  if (!supabase) return DEFAULT_WATCHLIST_ID;
+
+  if (!userId) {
+    try {
+      const { data: chk } = await supabase.from("watchlists").select("id").eq("id", DEFAULT_WATCHLIST_ID).maybeSingle();
+      if (!chk) {
+        await supabase.from("watchlists").insert({ id: DEFAULT_WATCHLIST_ID, name: "Default Watchlist" });
+      }
+    } catch (e) {
+      console.warn("[watchlist] Default watchlist check/insert:", e);
+    }
+    return DEFAULT_WATCHLIST_ID;
+  }
 
   const { data } = await supabase
     .from("watchlists")
