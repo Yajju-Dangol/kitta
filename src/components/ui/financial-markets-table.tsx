@@ -216,8 +216,9 @@ export function FinancialTable({
               className="bg-[#09090b]"
             >
               {stocks.map((stock, indexNum) => {
-                const dailyChange = stock.price - stock.open;
-                const dailyChangePercent = (dailyChange / stock.open) * 100;
+                const isPending = stock.status === 'pending' || stock.price === 0;
+                const dailyChange = stock.price && stock.open ? stock.price - stock.open : 0;
+                const dailyChangePercent = stock.open ? (dailyChange / stock.open) * 100 : 0;
 
                 return (
                   <motion.div key={stock.symbol} variants={rowVariants}>
@@ -241,6 +242,11 @@ export function FinancialTable({
                     <div className="min-w-0 flex flex-col">
                       <div className="font-semibold text-zinc-200 truncate flex items-center gap-2">
                         {stock.symbol}
+                        {isPending && (
+                          <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded animate-pulse">
+                            Analyzing…
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-zinc-500 truncate max-w-[120px]">{stock.name}</div>
                     </div>
