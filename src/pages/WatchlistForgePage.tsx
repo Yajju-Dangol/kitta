@@ -43,9 +43,18 @@ export default function WatchlistForgePage({
   const fetchWatchlist = () => {
     setLoading(true);
     fetch("/api/watchlist", { headers: authHeaders() })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
-        if (data.stocks) setWatchlistStocks(data.stocks);
+        if (Array.isArray(data.stocks)) {
+          setWatchlistStocks(data.stocks);
+          // If any stock is still pending background analysis, schedule auto refresh
+          if (data.has_pending) {
+            setTimeout(fetchWatchlist, 4000);
+          }
+        }
       })
       .catch((err) => console.error("Failed to fetch watchlist", err))
       .finally(() => setLoading(false));
@@ -66,18 +75,21 @@ export default function WatchlistForgePage({
   };
 
   const handleAddStock = () => {
-    if (!newSymbol.trim()) return;
+    const sym = newSymbol.trim().toUpperCase();
+    if (!sym) return;
     setAdding(true);
     fetch("/api/watchlist/add", {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ symbol: newSymbol.toUpperCase() }),
+      body: JSON.stringify({ symbol: sym }),
     })
       .then((res) => res.json())
-      .then(() => {
+      .then((data) => {
         setNewSymbol("");
-        // Delay slightly to let the background analysis task start
-        setTimeout(fetchWatchlist, 500);
+        fetchWatchlist();
+        if (data?.pending) {
+          setTimeout(fetchWatchlist, 3000);
+        }
       })
       .catch((err) => console.error("Failed to add stock", err))
       .finally(() => setAdding(false));
