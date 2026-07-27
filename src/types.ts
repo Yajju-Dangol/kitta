@@ -22,6 +22,7 @@ export interface Stock {
   aiTarget?: string;
   aiRisk?: string;
   relativeVolume?: string;
+  status?: 'pending' | 'ready';
 }
 
 export interface NewsItem {
