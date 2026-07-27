@@ -42,6 +42,16 @@ def _get_or_create_watchlist(user_id: Optional[str]) -> str:
     - If user_id is given → look up existing watchlist, or create one and return its id.
     """
     if not user_id:
+        if supabase_db:
+            try:
+                chk = supabase_db.table("watchlists").select("id").eq("id", DEFAULT_WATCHLIST_ID).execute()
+                if not chk.data:
+                    supabase_db.table("watchlists").insert({
+                        "id": DEFAULT_WATCHLIST_ID,
+                        "name": "Default Watchlist"
+                    }).select("id").execute()
+            except Exception as e:
+                print(f"[WATCHLIST] Notice: Default watchlist check/insert: {e}")
         return DEFAULT_WATCHLIST_ID
 
     # Look for an existing watchlist belonging to this user
@@ -53,12 +63,13 @@ def _get_or_create_watchlist(user_id: Optional[str]) -> str:
     new_wl = supabase_db.table("watchlists").insert({
         "user_id": user_id,
         "name": "My Watchlist"
-    }).execute()
+    }).select("id").execute()
 
     if new_wl.data and len(new_wl.data) > 0:
         return new_wl.data[0]["id"]
 
     raise HTTPException(status_code=500, detail="Failed to create watchlist for user")
+
 
 
 # ---------------------------------------------------------------------------
