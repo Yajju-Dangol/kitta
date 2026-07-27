@@ -196,6 +196,7 @@ export default function App() {
             stocks={stocks}
             selectedSymbol={selectedSymbol}
             onNavigateToCoreDeck={() => setCurrentView('dashboard')}
+            session={session}
           />
         );
       case 'watchlist':

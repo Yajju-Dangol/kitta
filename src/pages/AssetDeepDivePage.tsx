@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, RefreshCw, Search, TrendingUp, Activity, Maximize2, BarChart2, Hash, Percent, Briefcase } from "lucide-react";
+import { ArrowLeft, RefreshCw, Search, TrendingUp, Activity, Maximize2, BarChart2, Hash, Percent, Briefcase, Bookmark, Check } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import TimeseriesChart from "../components/TimeseriesChart";
+import { Session } from "@supabase/supabase-js";
 
 interface AssetDeepDivePageProps {
   stocks?: any[];
   selectedSymbol?: string;
   onNavigateToCoreDeck: () => void;
+  session?: Session | null;
 }
 
 export default function AssetDeepDivePage({
   selectedSymbol = "NEPSE",
-  onNavigateToCoreDeck
+  onNavigateToCoreDeck,
+  session
 }: AssetDeepDivePageProps) {
   const [searchInput, setSearchInput] = useState("");
   const [activeSymbol, setActiveSymbol] = useState(selectedSymbol);
@@ -19,11 +22,56 @@ export default function AssetDeepDivePage({
   const [quantData, setQuantData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inWatchlist, setInWatchlist] = useState(false);
+  const [addingWatchlist, setAddingWatchlist] = useState(false);
+
+  const authHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (session?.access_token) {
+      headers["Authorization"] = `Bearer ${session.access_token}`;
+    }
+    return headers;
+  };
+
+  const checkWatchlistStatus = (symbol: string) => {
+    fetch("/api/watchlist", { headers: authHeaders() })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.stocks)) {
+          const exists = data.stocks.some((s: any) => s.symbol.toUpperCase() === symbol.toUpperCase());
+          setInWatchlist(exists);
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleToggleWatchlist = () => {
+    setAddingWatchlist(true);
+    if (inWatchlist) {
+      fetch(`/api/watchlist/remove/${activeSymbol}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      })
+        .then(() => setInWatchlist(false))
+        .catch(() => {})
+        .finally(() => setAddingWatchlist(false));
+    } else {
+      fetch("/api/watchlist/add", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ symbol: activeSymbol }),
+      })
+        .then(() => setInWatchlist(true))
+        .catch(() => {})
+        .finally(() => setAddingWatchlist(false));
+    }
+  };
 
   const fetchQuantData = (symbol: string) => {
     setIsLoading(true);
     setError(null);
     setQuantData(null);
+    checkWatchlistStatus(symbol);
     
     fetch(`/api/quant/${symbol}`)
       .then(res => {
@@ -63,8 +111,20 @@ export default function AssetDeepDivePage({
       <Card className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 rounded-xl border-zinc-800">
         <div className="flex items-center space-x-3.5">
           <div className="flex flex-col">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <span className="font-mono text-sm font-bold text-zinc-100">{activeSymbol}</span>
+              <button
+                onClick={handleToggleWatchlist}
+                disabled={addingWatchlist}
+                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${
+                  inWatchlist
+                    ? "bg-[#10B981]/20 border-[#10B981]/50 text-[#10B981]"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
+                }`}
+              >
+                {inWatchlist ? <Check className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                <span>{inWatchlist ? "In Watchlist" : "Add to Watchlist"}</span>
+              </button>
             </div>
             <span className="text-[10px] text-zinc-500 tracking-wide font-medium uppercase mt-0.5">Quantitative Analysis Dashboard</span>
           </div>
