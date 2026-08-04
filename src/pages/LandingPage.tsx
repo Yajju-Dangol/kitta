@@ -13,7 +13,6 @@ export default function LandingPage({ onEnterApp, session }: LandingPageProps) {
   return (
     <div className="flex min-h-screen flex-col bg-black overflow-x-hidden font-sans">
       <HeroSection onEnterApp={onEnterApp} session={session} />
-      <FeaturedSpotlight />
       <StackedCircularFooter />
     </div>
   );

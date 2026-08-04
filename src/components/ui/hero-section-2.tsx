@@ -29,10 +29,12 @@ const transitionVariants = {
 
 import { Session } from '@supabase/supabase-js'
 import { signInWithGoogle, signOut } from '@/lib/supabase'
+import dashboardImg from '@/images/stock-dashboard.png'
+import kittaLogo from '@/images/kitta-logo.png'
 
 interface HeroSectionProps {
-  onEnterApp: () => void;
-  session?: Session | null;
+    onEnterApp: () => void;
+    session?: Session | null;
 }
 
 export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
@@ -42,7 +44,7 @@ export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
             <main className="overflow-hidden bg-[#000000] text-zinc-300">
                 <section>
                     <div className="relative pt-32 pb-16">
-                        <div className="absolute inset-0 -z-10 size-full [background:radial-gradient(125%_125%_at_50%_100%,transparent_0%,#000000_75%)]"></div>
+                        <div className="absolute inset-0 -z-10 size-full bg-black"></div>
                         <div className="mx-auto max-w-5xl px-6">
                             <div className="sm:mx-auto lg:mr-auto text-center lg:text-left">
                                 <AnimatedGroup
@@ -59,16 +61,16 @@ export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
                                     }}
                                 >
                                     <div className="inline-flex items-center space-x-2 bg-zinc-900/50 border border-zinc-800 rounded-full px-3 py-1 mb-6">
-                                      <span className="flex h-2 w-2 rounded-full bg-[#10B981] animate-pulse"></span>
-                                      <span className="text-xs font-medium text-zinc-300 tracking-wide">Kitta v2.0 Live Beta</span>
+                                        <span className="flex h-2 w-2 rounded-full bg-[#10B981] animate-pulse"></span>
+                                        <span className="text-xs font-medium text-zinc-300 tracking-wide">Welcome to Kitta</span>
                                     </div>
                                     <h1
                                         className="mt-2 max-w-3xl text-balance text-5xl font-bold tracking-tight text-zinc-100 md:text-7xl lg:mt-4 mx-auto lg:mx-0">
-                                        Navigate NEPSE with <span className="text-[#10B981]">AI-Driven</span> Precision.
+                                        Track NEPSE <span className="text-[#10B981]">Easily</span>.
                                     </h1>
                                     <p
                                         className="mt-8 max-w-2xl text-pretty text-lg text-zinc-400 mx-auto lg:mx-0 leading-relaxed">
-                                        Kitta is the ultimate autonomous analyst for the Nepal Stock Exchange. We synthesize real-time market data, institutional flows, and macro trends into actionable intelligence.
+                                        Kitta is a simple dashboard for the Nepal Stock Exchange. View real-time market data and track your favorite stocks in one place.
                                     </p>
                                     <div className="mt-12 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                                         <div
@@ -78,7 +80,7 @@ export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
                                                 onClick={onEnterApp}
                                                 size="lg"
                                                 className="w-full sm:w-auto rounded-xl px-8 text-base bg-[#10B981] text-black hover:bg-[#10B981]/80 font-bold">
-                                                <span className="text-nowrap">Enter Terminal</span>
+                                                <span className="text-nowrap">Open Dashboard</span>
                                             </Button>
                                         </div>
                                         <Button
@@ -86,7 +88,7 @@ export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
                                             size="lg"
                                             variant="outline"
                                             className="w-full sm:w-auto h-[48px] rounded-xl px-8 text-base border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-900 hover:text-white">
-                                            <span className="text-nowrap">View Documentation</span>
+                                            <span className="text-nowrap">Learn More</span>
                                         </Button>
                                     </div>
                                 </AnimatedGroup>
@@ -112,7 +114,7 @@ export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
                                 <div className="relative mx-auto overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 p-2 shadow-2xl shadow-[#10B981]/5 ring-1 ring-white/10">
                                     <img
                                         className="aspect-[16/9] relative rounded-xl object-cover border border-zinc-900"
-                                        src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop"
+                                        src={dashboardImg}
                                         alt="Kitta Dashboard Interface"
                                         width="2700"
                                         height="1440"
@@ -124,25 +126,25 @@ export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
                         </AnimatedGroup>
                     </div>
                 </section>
-                
+
                 {/* Logo cloud section */}
                 <section className="bg-black pb-24 pt-10">
                     <div className="group relative m-auto max-w-5xl px-6">
                         <div className="text-center mb-8 text-xs font-semibold tracking-widest uppercase text-zinc-600">
-                          Data & Infrastructure Partners
+                            Data & Infrastructure Partners
                         </div>
                         <div className="mx-auto grid max-w-2xl grid-cols-2 md:grid-cols-4 items-center justify-items-center gap-x-12 gap-y-8 opacity-60 grayscale transition-all duration-500 hover:grayscale-0 hover:opacity-100 sm:gap-x-16 sm:gap-y-14">
                             <div className="flex font-mono text-xl font-bold items-center space-x-2 text-white">
-                              <Activity className="w-6 h-6 text-[#10B981]" /> <span>NEPSE</span>
+                                <Activity className="w-6 h-6 text-[#10B981]" /> <span>NEPSE</span>
                             </div>
                             <div className="flex font-mono text-xl font-bold items-center space-x-2 text-white">
-                              <span>OpenAI</span>
+                                <span>Gemini</span>
                             </div>
                             <div className="flex font-mono text-xl font-bold items-center space-x-2 text-white">
-                              <span>Supabase</span>
+                                <span>Supabase</span>
                             </div>
                             <div className="flex font-mono text-xl font-bold items-center space-x-2 text-white">
-                              <span>Vercel</span>
+                                <span>Vercel</span>
                             </div>
                         </div>
                     </div>
@@ -153,10 +155,10 @@ export function HeroSection({ onEnterApp, session }: HeroSectionProps) {
 }
 
 const menuItems = [
-    { name: 'Terminal', href: '#' },
-    { name: 'Macro Models', href: '#' },
+    { name: 'Dashboard', href: '#' },
+    { name: 'Trends', href: '#' },
     { name: 'Watchlist', href: '#' },
-    { name: 'Research', href: '#' },
+    { name: 'Learn', href: '#' },
 ]
 
 export const HeroHeader = ({ onEnterApp, session }: { onEnterApp: () => void, session?: Session | null }) => {
@@ -184,7 +186,7 @@ export const HeroHeader = ({ onEnterApp, session }: { onEnterApp: () => void, se
                                 onClick={onEnterApp}
                                 aria-label="home"
                                 className="flex items-center space-x-2 text-white font-bold text-xl tracking-tight">
-                                <span className="text-[#10B981]">Kitta.</span>
+                                <img src={kittaLogo} alt="Kitta Logo" className="h-8" />
                             </button>
 
                             <button

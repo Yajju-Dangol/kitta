@@ -3,14 +3,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react"
+import kittaLogo from '@/images/kitta-logo.png'
 
 function StackedCircularFooter() {
   return (
     <footer className="bg-black py-16 border-t border-zinc-900">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col items-center">
-          <div className="mb-8 rounded-full bg-[#10B981]/10 border border-[#10B981]/20 p-8">
-            <span className="text-[#10B981] font-bold text-3xl tracking-tighter">K.</span>
+          <div className="mb-8">
+            <img src={kittaLogo} alt="Kitta Logo" className="h-12" />
           </div>
           <nav className="mb-8 flex flex-wrap justify-center gap-8 text-sm font-medium text-zinc-400">
             <a href="#" className="hover:text-white transition-colors">Terminal</a>
