@@ -14,22 +14,11 @@ function StackedCircularFooter() {
             <img src={kittaLogo} alt="Kitta Logo" className="h-12" />
           </div>
           <nav className="mb-8 flex flex-wrap justify-center gap-8 text-sm font-medium text-zinc-400">
-            <a href="#" className="hover:text-white transition-colors">Terminal</a>
-            <a href="#" className="hover:text-white transition-colors">Documentation</a>
-            <a href="#" className="hover:text-white transition-colors">API Pricing</a>
-            <a href="#" className="hover:text-white transition-colors">Company</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+            <a href="#" className="hover:text-white transition-colors">Dashboard</a>
+            <a href="#" className="hover:text-white transition-colors">Trends</a>
+            <a href="#" className="hover:text-white transition-colors">Watchlist</a>
+            <a href="#" className="hover:text-white transition-colors">Learn</a>
           </nav>
-          <div className="mb-10 flex space-x-4">
-            <Button variant="outline" size="icon" className="rounded-full bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800">
-              <Twitter className="h-4 w-4" />
-              <span className="sr-only">Twitter</span>
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-full bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800">
-              <Linkedin className="h-4 w-4" />
-              <span className="sr-only">LinkedIn</span>
-            </Button>
-          </div>
           <div className="mb-12 w-full max-w-md">
             <form className="flex space-x-2">
               <div className="flex-grow">
