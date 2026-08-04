@@ -62,11 +62,10 @@ export default function TelemetryStrip() {
 
       {/* Corporate Market Status Badge */}
       <div className="flex items-center space-x-3 border-l border-zinc-800/80 pl-4 flex-shrink-0">
-        <div className="flex items-center space-x-1.5 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800">
+        <div className="flex items-center justify-center bg-zinc-900 p-2 rounded-full border border-zinc-800">
           <span className="relative flex h-1.5 w-1.5">
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#10B981]"></span>
           </span>
-          <span className="text-[9px] font-semibold font-sans tracking-wider text-zinc-400 uppercase">NEPSE LIVE GRID</span>
         </div>
       </div>
     </div>
