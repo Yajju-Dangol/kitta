@@ -89,7 +89,6 @@ export default function NavigationSidebar({ currentView, onViewChange, dbLatency
     { id: 'dashboard', label: 'Stock Agent', icon: LayoutDashboard },
     { id: 'drilldown', label: 'Stock Details', icon: BarChart3 },
     { id: 'watchlist', label: 'Watchlist', icon: ListFilter },
-    { id: 'sandbox', label: 'Sector Trends', icon: Layers },
   ] as const;
 
   return (
